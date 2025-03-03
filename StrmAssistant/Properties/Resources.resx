@@ -669,6 +669,6 @@
     <value>TV Series Merge Preference</value>
   </data>
   <data name="ExtractVideoThumbnailTask_Description_Extract_video_thumbnail_preview" xml:space="preserve">
-    <value>Extract video thumbnail preview or chatper image</value>
+    <value>Extract video thumbnail preview and chatper images</value>
   </data>
 </root>

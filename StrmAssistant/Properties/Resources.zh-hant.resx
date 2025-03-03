@@ -582,6 +582,6 @@
     <value>電視節目合併偏好</value>
   </data>
   <data name="ExtractVideoThumbnailTask_Description_Extract_video_thumbnail_preview" xml:space="preserve">
-    <value>提取影片預覽縮圖或章節圖</value>
+    <value>提取影片預覽縮圖和章節圖</value>
   </data>
 </root>
