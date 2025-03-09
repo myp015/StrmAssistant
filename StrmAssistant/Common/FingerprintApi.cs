@@ -299,7 +299,9 @@ namespace StrmAssistant.Common
                 }
             }
 
-            resultItems = resultItems.GroupBy(i => i.InternalId).Select(g => g.First()).ToList();
+            var isModSupported = Plugin.Instance.IsModSupported;
+            resultItems = resultItems.Where(i => isModSupported || !i.IsShortcut).GroupBy(i => i.InternalId)
+                .Select(g => g.First()).ToList();
 
             var blackListSeasons = GetAllBlacklistSeasons();
             resultItems = resultItems.Where(e => !blackListSeasons.Contains(e.ParentId)).ToList();

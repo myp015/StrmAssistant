@@ -221,60 +221,61 @@ namespace StrmAssistant
         {
             try
             {
-                var deserializeResult = false;
-
-                if (MediaInfoExtractStore.GetOptions().PersistMediaInfo && (e.Item is Video || e.Item is Audio))
+                if (e.Item is Video || e.Item is Audio)
                 {
-                    var directoryService = new DirectoryService(Logger, _fileSystem);
+                    var deserializeResult = LibraryApi.HasMediaInfo(e.Item);
 
-                    if (MediaInfoExtractStore.MediaInfoExtractOptions.ExclusiveExtract || e.Item.IsShortcut)
+                    if (MediaInfoExtractStore.GetOptions().PersistMediaInfo)
                     {
-                        deserializeResult = await MediaInfoApi.DeserializeMediaInfo(e.Item, directoryService,
-                            "Item Added Event").ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        _ = MediaInfoApi.SerializeMediaInfo(e.Item.InternalId, directoryService, true,
-                            "Item Added Event").ConfigureAwait(false);
-                    }
-                }
+                        var directoryService = new DirectoryService(Logger, _fileSystem);
 
-                if ((e.Item is Video || e.Item is Audio) && MainOptionsStore.PluginOptions.GeneralOptions.CatchupMode)
-                {
-                    if (IntroSkipStore.IntroSkipOptions.UnlockIntroSkip &&
-                        IsCatchupTaskSelected(CatchupTask.Fingerprint) &&
-                        e.Item is Episode && FingerprintApi.IsLibraryInScope(e.Item) &&
-                        (!deserializeResult || FingerprintApi.IsExtractNeeded(e.Item)))
-                    {
-                        QueueManager.FingerprintItemQueue.Enqueue(e.Item);
-                    }
-                    else
-                    {
-                        if (IsCatchupTaskSelected(CatchupTask.MediaInfo) &&
-                            (MediaInfoExtractStore.MediaInfoExtractOptions.ExclusiveExtract || e.Item.IsShortcut) &&
-                            !deserializeResult)
+                        if (!deserializeResult)
                         {
-                            QueueManager.MediaInfoExtractItemQueue.Enqueue(e.Item);
+                            deserializeResult = await MediaInfoApi.DeserializeMediaInfo(e.Item, directoryService,
+                                "Item Added Event").ConfigureAwait(false);
                         }
-
-                        if (IsCatchupTaskSelected(CatchupTask.IntroSkip) &&
-                            e.Item is Episode && PlaySessionMonitor.IsLibraryInScope(e.Item))
+                        else
                         {
-                            if (!LibraryApi.HasMediaInfo(e.Item))
+                            _ = MediaInfoApi.SerializeMediaInfo(e.Item.InternalId, directoryService, true,
+                                "Item Added Event").ConfigureAwait(false);
+                        }
+                    }
+
+                    if (MainOptionsStore.PluginOptions.GeneralOptions.CatchupMode)
+                    {
+                        if (IntroSkipStore.IntroSkipOptions.UnlockIntroSkip &&
+                            IsCatchupTaskSelected(CatchupTask.Fingerprint) &&
+                            e.Item is Episode && FingerprintApi.IsLibraryInScope(e.Item) &&
+                            (!deserializeResult || FingerprintApi.IsExtractNeeded(e.Item)))
+                        {
+                            QueueManager.FingerprintItemQueue.Enqueue(e.Item);
+                        }
+                        else
+                        {
+                            if (IsCatchupTaskSelected(CatchupTask.MediaInfo) && !deserializeResult)
                             {
                                 QueueManager.MediaInfoExtractItemQueue.Enqueue(e.Item);
                             }
-                            else if (e.Item is Episode episode && ChapterApi.SeasonHasIntroCredits(episode))
+
+                            if (IsCatchupTaskSelected(CatchupTask.IntroSkip) &&
+                                e.Item is Episode && PlaySessionMonitor.IsLibraryInScope(e.Item))
                             {
-                                QueueManager.IntroSkipItemQueue.Enqueue(episode);
+                                if (!deserializeResult)
+                                {
+                                    QueueManager.MediaInfoExtractItemQueue.Enqueue(e.Item);
+                                }
+                                else if (e.Item is Episode episode && ChapterApi.SeasonHasIntroCredits(episode))
+                                {
+                                    QueueManager.IntroSkipItemQueue.Enqueue(episode);
+                                }
                             }
                         }
-                    }
 
-                    if (IsCatchupTaskSelected(CatchupTask.EpisodeRefresh) && e.Item is Episode ep &&
-                        ep.PremiereDate >= DateTimeOffset.UtcNow.AddDays(-90))
-                    {
-                        QueueManager.EpisodeRefreshItemQueue.Enqueue(ep);
+                        if (IsCatchupTaskSelected(CatchupTask.EpisodeRefresh) && e.Item is Episode ep &&
+                            ep.PremiereDate >= DateTimeOffset.UtcNow.AddDays(-90))
+                        {
+                            QueueManager.EpisodeRefreshItemQueue.Enqueue(ep);
+                        }
                     }
                 }
 

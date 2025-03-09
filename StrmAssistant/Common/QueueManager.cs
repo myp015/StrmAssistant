@@ -1,13 +1,13 @@
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Model.Logging;
-using StrmAssistant.Options;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static StrmAssistant.Options.GeneralOptions;
 using static StrmAssistant.Options.MediaInfoExtractOptions;
 using static StrmAssistant.Options.Utility;
 
@@ -195,8 +195,6 @@ namespace StrmAssistant.Common
                         if (currentQueueCount < maxConcurrentCount && progress.HasValue)
                         {
                             deferredItems.Add(dequeueItem);
-                            //Logger.Debug("MediaInfoExtract - Item Deferred: " + dequeueItem.Name + " - " + dequeueItem.Path);
-                            //Logger.Debug($"MediaInfoExtract - Library Scan Running - Progress {progress:F2}% - {library.Path}");
                         }
                         else
                         {
@@ -269,7 +267,7 @@ namespace StrmAssistant.Common
                                         return;
                                     }
 
-                                    if (IsCatchupTaskSelected(GeneralOptions.CatchupTask.IntroSkip) &&
+                                    if (IsCatchupTaskSelected(CatchupTask.IntroSkip) &&
                                         taskItem is Episode episode && Plugin.PlaySessionMonitor.IsLibraryInScope(episode))
                                     {
                                         IntroSkipItemQueue.Enqueue(episode);
@@ -385,8 +383,6 @@ namespace StrmAssistant.Common
                         if (currentQueueCount < maxConcurrentCount && progress.HasValue)
                         {
                             deferredItems.Add(dequeueItem);
-                            //Logger.Debug("IntroFingerprintExtract - Item Deferred: " + dequeueItem.Name + " - " + dequeueItem.Path);
-                            //Logger.Debug($"IntroFingerprintExtract - Library Scan Running - Progress {progress:F2}% - {library.Path}");
                         }
                         else
                         {
@@ -398,8 +394,7 @@ namespace StrmAssistant.Common
 
                     var episodes = Plugin.FingerprintApi.FetchFingerprintQueueItems(dequeueItems);
 
-                    if (IsCatchupTaskSelected(GeneralOptions.CatchupTask.MediaInfo,
-                            GeneralOptions.CatchupTask.IntroSkip))
+                    if (IsCatchupTaskSelected(CatchupTask.MediaInfo, CatchupTask.IntroSkip))
                     {
                         var episodeIds = episodes.Select(e => e.InternalId).ToHashSet();
                         var mediaInfoItems = dequeueItems.Where(i => !episodeIds.Contains(i.InternalId));
