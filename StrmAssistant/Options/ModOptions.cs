@@ -38,6 +38,7 @@ namespace StrmAssistant.Options
             [DescriptionL("ItemType_MusicAlbum_MusicAlbum", typeof(Resources))] MusicAlbum,
             [DescriptionL("ItemType_MusicArtist_MusicArtist", typeof(Resources))] MusicArtist,
             [DescriptionL("ItemType_Playlist_Playlist", typeof(Resources))] Playlist,
+            [DescriptionL("ItemType_Video_Video", typeof(Resources))] Video,
             [DescriptionL("ItemType_Photo_Photo", typeof(Resources))] Photo,
             [DescriptionL("ItemType_PhotoAlbum_PhotoAlbum", typeof(Resources))] PhotoAlbum,
             [DescriptionL("ItemType_Genre_Genre", typeof(Resources))] Genre,

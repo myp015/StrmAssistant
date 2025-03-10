@@ -79,7 +79,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to EpisodeRefresh.
+        ///   Looks up a localized string similar to Episode Refresh.
         /// </summary>
         public static string CatchupTask_EpisodeRefresh_EpisodeRefresh {
             get {
@@ -134,7 +134,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Refresh metadata for episodes missing overview.
+        ///   Looks up a localized string similar to Refresh metadata for episodes without overview.
         /// </summary>
         public static string EpisodeRefreshTask_Description_Refresh_metadata_for_episodes_missing_overview {
             get {
@@ -862,6 +862,15 @@ namespace StrmAssistant.Properties {
         public static string ItemType_Trailer_Trailer {
             get {
                 return ResourceManager.GetString("ItemType_Trailer_Trailer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Video.
+        /// </summary>
+        public static string ItemType_Video_Video {
+            get {
+                return ResourceManager.GetString("ItemType_Video_Video", resourceCulture);
             }
         }
         

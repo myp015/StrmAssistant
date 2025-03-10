@@ -677,4 +677,7 @@
   <data name="CatchupTask_EpisodeRefresh_EpisodeRefresh" xml:space="preserve">
     <value>Episode Refresh</value>
   </data>
+  <data name="ItemType_Video_Video" xml:space="preserve">
+    <value>Video</value>
+  </data>
 </root>

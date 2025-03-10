@@ -590,4 +590,7 @@
   <data name="CatchupTask_EpisodeRefresh_EpisodeRefresh" xml:space="preserve">
     <value>劇集元資料刷新</value>
   </data>
+  <data name="ItemType_Video_Video" xml:space="preserve">
+    <value>影片</value>
+  </data>
 </root>
