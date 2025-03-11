@@ -177,7 +177,7 @@ namespace StrmAssistant.Common
             var items = Array.Empty<BaseItem>();
             var extras = Array.Empty<BaseItem>();
 
-            if (libraryIds.Any(id => id != "-1") && libraryPathsInScope.Any())
+            if ((!libraryIds.Any() || libraryIds.Any(id => id != "-1")) && libraryPathsInScope.Any())
             {
                 var videoThumbnailQuery = new InternalItemsQuery
                 {
