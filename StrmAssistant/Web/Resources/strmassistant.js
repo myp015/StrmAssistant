@@ -148,6 +148,22 @@
                     toast(confirmMessage);
                 });
             }
+        },
+
+        lock: function (itemId, lockData) {
+            let apiClient = connectionManager.currentApiClient();
+            let lockApi = apiClient.getUrl(`Items/${itemId}/Lock`);
+            let queryParams = {
+                LockData: lockData
+            };
+            let queryString = new URLSearchParams(queryParams).toString();
+
+            apiClient.ajax({
+                type: "POST",
+                url: `${lockApi}?${queryString}`,
+                data: {},
+                contentType: "application/json"
+            });
         }
     };
 });

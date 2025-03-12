@@ -46,9 +46,21 @@ namespace StrmAssistant.Web.Helper
 const strmAssistantCommandSource = {
     getCommands: function(options) {
         const locale = this.globalize.getCurrentLocale().toLowerCase();
-        const commandName = (locale === 'zh-cn') ? '\u590D\u5236' : (['zh-hk', 'zh-tw'].includes(locale) ? '\u8907\u8F38' : 'Copy');
+        const cjk = ['zh', 'ja', 'ko'].some(lang => locale.startsWith(lang));
+        const lockCommandName = ({
+            'zh-cn': '\u9501\u5B9A',
+            'zh-hk': '\u9396\u5B9A',
+            'zh-tw': '\u9396\u5B9A'
+        }[locale] || 'Lock') + (cjk ? this.globalize.translate('Metadata') : ' ' + this.globalize.translate('Metadata'));
+        const unlockCommandName = ({
+            'zh-cn': '\u89E3\u9501',
+            'zh-hk': '\u89E3\u9396',
+            'zh-tw': '\u89E3\u9396'
+        }[locale] || 'Unlock') + (cjk ? this.globalize.translate('Metadata') : ' ' + this.globalize.translate('Metadata'));
+
         if (options.items?.length === 1 && options.items[0].LibraryOptions && options.items[0].Type === 'VirtualFolder' &&
             options.items[0].CollectionType !== 'boxsets' && options.items[0].CollectionType !== 'playlists') {
+            const commandName = (locale === 'zh-cn') ? '\u590D\u5236' : (['zh-hk', 'zh-tw'].includes(locale) ? '\u8907\u8F38' : 'Copy');
             return [{ name: commandName, id: 'copy', icon: 'content_copy' }];
         }
         if (options.items?.length === 1 && options.items[0].LibraryOptions && options.items[0].Type === 'VirtualFolder' &&
@@ -63,13 +75,28 @@ const strmAssistantCommandSource = {
             if ((options.items[0].Type === 'Movie' || options.items[0].Type === 'Episode') &&
                  options.items[0].CanDelete && options.mediaSourceId && options.items[0].MediaSources.length > 1) {
                 result.push({
-                    name: (locale.startsWith('zh') || locale.startsWith('ja') || locale.startsWith('ko'))
+                    name: cjk
                         ? this.globalize.translate('Delete') + this.globalize.translate('Version')
                         : this.globalize.translate('Delete') + ' ' + this.globalize.translate('Version'),
                     id: 'delver_' + options.mediaSourceId,
                     icon: 'remove'
                 });
             }
+            if (options.items[0].hasOwnProperty('LockData') && options.items[0].Type !== 'CollectionFolder' &&
+                (options.user && options.user.Policy.IsAdministrator || false)) {
+                if (options.items[0].LockData) {
+                    result.push({ name: unlockCommandName, id: 'unlock', icon: 'lock_open' });
+                } else {
+                    result.push({ name: lockCommandName, id: 'lock', icon: 'lock' });
+                }
+            }
+            return result;
+        }
+        if (!options.multiSelect && options.items?.length > 1 && options.items[0].Type !== 'CollectionFolder' &&
+            ((options.users && Object.values(options.users)[0]?.Policy.IsAdministrator) || false)) {
+            const result = [];
+            result.push({ name: lockCommandName, id: 'lock', icon: 'lock' });
+            result.push({ name: unlockCommandName, id: 'unlock', icon: 'lock_open' });
             return result;
         }
         return [];
@@ -79,7 +106,9 @@ const strmAssistantCommandSource = {
         const actions = {
             copy: 'copy',
             remove: 'remove',
-            traverse: 'traverse'
+            traverse: 'traverse',
+            lock: 'lock',
+            unlock: 'unlock'
         };
         if (command.startsWith('delver_')) {
             const mediaSourceId = command.replace('delver_', '');
@@ -92,6 +121,13 @@ const strmAssistantCommandSource = {
                     return responses[0].delver(itemId, itemName, items[0].Type);
                 });
             }
+        }
+        if (command === actions.lock || command === actions.unlock) {
+            const lockData = command === actions.lock;
+            return require(['components/strmassistant/strmassistant']).then(responses => {
+                const promises = items.map(item => responses[0].lock(item.Id, lockData));
+                return Promise.all(promises);
+            });
         }
         if (actions[command]) {
             return require(['components/strmassistant/strmassistant']).then(responses => {
