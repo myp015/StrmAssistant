@@ -52,13 +52,16 @@ namespace StrmAssistant.Options.Store
                 
                 if (changedProperties.Contains(nameof(MediaInfoExtractOptions.PersistMediaInfo)))
                 {
-                    if (options.PersistMediaInfo)
+                    if (options.IsModSupported)
                     {
-                        PatchManager.ChapterChangeTracker.Patch();
-                    }
-                    else
-                    {
-                        PatchManager.ChapterChangeTracker.Unpatch();
+                        if (options.PersistMediaInfo)
+                        {
+                            PatchManager.ChapterChangeTracker.Patch();
+                        }
+                        else
+                        {
+                            PatchManager.ChapterChangeTracker.Unpatch();
+                        }
                     }
                 }
 
