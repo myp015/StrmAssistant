@@ -132,6 +132,10 @@ namespace StrmAssistant.Options
         public string AltMovieDbApiKey { get; set; } = string.Empty;
 
         [Browsable(false)]
+        [Required]
+        public int EpisodeRefreshLookBackDays { get; set; } = 365;
+
+        [Browsable(false)]
         public bool IsMovieDbPluginLoaded =>
             AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "MovieDb") &&
             RuntimeInformation.ProcessArchitecture == Architecture.X64;

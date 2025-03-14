@@ -962,20 +962,28 @@ namespace StrmAssistant.Common
 
         public List<Episode> FetchEpisodeRefreshTaskItems()
         {
+            var lookBackDays = Plugin.Instance.MetadataEnhanceStore.GetOptions().EpisodeRefreshLookBackDays;
+            _logger.Info("EpisodeRefresh - Look back days: " + lookBackDays);
+
+            var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
+
             var itemsToRefresh = _libraryManager
                 .GetItemList(new InternalItemsQuery
                 {
-                    IncludeItemTypes = new[] { nameof(Episode) }, HasIndexNumber = true
+                    IncludeItemTypes = new[] { nameof(Episode) }, HasIndexNumber = true, IsLocked = false
                 })
-                .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary)) &&
-                            e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6))
+                .OfType<Episode>()
+                .Where(e =>
+                    (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary)) && e.PremiereDate.HasValue
+                        ? e.PremiereDate > lookBackTime
+                        : e.Series.PremiereDate > lookBackTime &&
+                          e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6))
+                .OrderByDescending(e => e.PremiereDate ?? e.Series.PremiereDate)
                 .ToList();
 
-            var result = OrderByDescending(itemsToRefresh).OfType<Episode>().ToList();
+            _logger.Info("EpisodeRefresh - Number of items: " + itemsToRefresh.Count);
 
-            _logger.Info("EpisodeRefresh - Number of items: " + result.Count);
-
-            return result;
+            return itemsToRefresh;
         }
 
         public List<Episode> FetchEpisodeRefreshQueueItems(List<Episode> items)
@@ -992,6 +1000,7 @@ namespace StrmAssistant.Common
                     {
                         IncludeItemTypes = new[] { nameof(Episode) },
                         HasIndexNumber = true,
+                        IsLocked = false,
                         MinPremiereDate = DateTimeOffset.UtcNow.AddDays(-90),
                         OrderBy = new (string, SortOrder)[] { (ItemSortBy.IndexNumber, SortOrder.Ascending) }
                     })
