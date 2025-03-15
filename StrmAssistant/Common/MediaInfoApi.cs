@@ -351,6 +351,17 @@ namespace StrmAssistant.Common
                         workItem.Container = mediaSourceWithChapters.MediaSourceInfo.Container;
                         workItem.TotalBitrate = mediaSourceWithChapters.MediaSourceInfo.Bitrate.GetValueOrDefault();
 
+                        var videoStream = mediaSourceWithChapters.MediaSourceInfo.MediaStreams
+                            .Where(s => s.Type == MediaStreamType.Video && s.Width.HasValue && s.Height.HasValue)
+                            .OrderByDescending(s => (long)s.Width.Value * s.Height.Value)
+                            .FirstOrDefault();
+
+                        if (videoStream != null)
+                        {
+                            workItem.Width = videoStream.Width.GetValueOrDefault();
+                            workItem.Height = videoStream.Height.GetValueOrDefault();
+                        }
+
                         _libraryManager.UpdateItems(new List<BaseItem> { workItem }, null,
                             ItemUpdateType.MetadataImport, false, false, null, CancellationToken.None);
 
