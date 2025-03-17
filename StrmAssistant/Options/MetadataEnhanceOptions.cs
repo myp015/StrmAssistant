@@ -14,10 +14,11 @@ using static StrmAssistant.Common.CommonUtility;
 
 namespace StrmAssistant.Options
 {
-    public enum RefreshPersonMode
+    public enum RefreshPersonOption
     {
         Default,
-        FullRefresh
+        FullRefresh,
+        NoAdult
     }
 
     public class MetadataEnhanceOptions : EditableOptionsBase
@@ -89,7 +90,7 @@ namespace StrmAssistant.Options
         
         [Browsable(false)]
         [Required]
-        public RefreshPersonMode RefreshPersonMode { get; set; } = RefreshPersonMode.Default;
+        public string RefreshPersonMode { get; set; } = RefreshPersonOption.Default.ToString();
 
         [DisplayNameL("ModOptions_OriginalPoster_Original_Poster", typeof(Resources))]
         [DescriptionL("ModOptions_OriginalPoster_Show_original_poster_based_on_original_language__Default_is_OFF_", typeof(Resources))]

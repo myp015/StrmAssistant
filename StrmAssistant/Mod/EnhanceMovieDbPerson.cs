@@ -102,6 +102,9 @@ namespace StrmAssistant.Mod
         {
             if (!RefreshPersonTask.IsRunning) return true;
 
+            var adult = Traverse.Create(info).Property("adult").GetValue<bool>();
+            if (adult && RefreshPersonTask.NoAdult) return true;
+
             var nameProperty = Traverse.Create(info).Property("name");
             var name = nameProperty.GetValue<string>();
             var placeOfBirthProperty = Traverse.Create(info).Property("place_of_birth");
