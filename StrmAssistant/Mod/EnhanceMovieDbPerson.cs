@@ -122,11 +122,12 @@ namespace StrmAssistant.Mod
                 }
                 else
                 {
-                    var alsoKnownAsList = Traverse.Create(info)
-                        .Property("also_known_as")
-                        .GetValue<List<object>>()
-                        ?.OfType<string>()
-                        .Where(alias => !string.IsNullOrEmpty(alias))
+                    var alsoKnownAsProperty = Traverse.Create(info).Property("also_known_as");
+                    var alsoKnownAsValueType = alsoKnownAsProperty.GetValueType();
+                    var alsoKnownAsList = (alsoKnownAsValueType == typeof(List<string>)
+                            ? alsoKnownAsProperty.GetValue<List<string>>()
+                            : alsoKnownAsProperty.GetValue<List<object>>()?.OfType<string>())
+                        ?.Where(alias => !string.IsNullOrEmpty(alias))
                         .ToList();
 
                     if (alsoKnownAsList?.Any() == true)
