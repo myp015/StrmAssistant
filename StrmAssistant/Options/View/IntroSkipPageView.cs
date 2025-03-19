@@ -1,7 +1,7 @@
 ﻿using Emby.Media.Common.Extensions;
 using Emby.Web.GenericEdit.Elements;
 using Emby.Web.GenericEdit.Elements.List;
-using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Tasks;
 using MediaBrowser.Model.Plugins;
@@ -9,8 +9,7 @@ using MediaBrowser.Model.Plugins.UI.Views;
 using StrmAssistant.Options.Store;
 using StrmAssistant.Options.UIBaseClasses.Views;
 using StrmAssistant.Properties;
-using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace StrmAssistant.Options.View
@@ -46,15 +45,8 @@ namespace StrmAssistant.Options.View
             switch (commandId)
             {
                 case "ClearIntroCreditsMarkers":
-                {
-                    if (ContentData is IntroSkipOptions options)
-                    {
-                        options.ValidateOrThrow();
-                    }
-
                     Task.Run(HandleClearIntroButton).FireAndForget(Plugin.Instance.Logger);
                     return Task.FromResult<IPluginUIView>(this);
-                }
             }
 
             return base.RunCommand(itemId, commandId, data);
@@ -75,37 +67,7 @@ namespace StrmAssistant.Options.View
             RaiseUIViewInfoChanged();
             await Task.Delay(10.ms());
 
-            var clearIntroShowIds = IntroSkipOptions.ClearIntroShows
-                .Split(new char[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(part => long.TryParse(part.Trim(), out var id) ? id : (long?)null)
-                .Where(id => id.HasValue)
-                .Select(id => id.Value)
-                .ToArray();
-
-            var clearShowItems = Plugin.LibraryApi.GetItemsByIds(clearIntroShowIds)
-                .Where(item => item is Series || item is Season).ToList();
-
-            foreach (var item in clearShowItems)
-            {
-                var listItem = new GenericListItem();
-
-                if (item is Series series)
-                {
-                    listItem.PrimaryText = $"{series.Name} ({series.InternalId}) - {series.ContainingFolderPath}";
-                }
-                else if (item is Season season)
-                {
-                    listItem.PrimaryText =
-                        $"{season.SeriesName} - {season.Name} ({season.InternalId}) - {season.ContainingFolderPath}";
-                }
-
-                listItem.Icon = IconNames.clear_all;
-                listItem.IconMode = ItemListIconMode.SmallRegular;
-
-                IntroSkipOptions.ClearIntroResult.Add(listItem);
-            }
-            
-            var episodes = Plugin.ChapterApi.FetchClearTaskItems(clearShowItems);
+            var episodes = Plugin.ChapterApi.FetchClearTaskItems(new List<BaseItem>());
 
             progressItem.PercentComplete = 20;
             RaiseUIViewInfoChanged();
@@ -132,7 +94,7 @@ namespace StrmAssistant.Options.View
             progressItem.Icon = IconNames.info;
             progressItem.Status = ItemStatus.Succeeded;
             RaiseUIViewInfoChanged();
-            await Task.Delay(5000);
+            await Task.Delay(2000);
             IntroSkipOptions.ClearIntroResult.Clear();
             RaiseUIViewInfoChanged();
         }

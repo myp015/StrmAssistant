@@ -225,17 +225,20 @@ namespace StrmAssistant.ScheduledTask
 
             progress.Report(100.0);
 
-            var markerTask = _taskManager.ScheduledTasks.FirstOrDefault(t =>
-                t.Name.Equals("Detect Episode Intros", StringComparison.OrdinalIgnoreCase));
-            if (markerTask != null && groupedBySeason.Count > seasonSkipCount &&
-                !cancellationToken.IsCancellationRequested)
+            if (!mediaInfoRestoreMode)
             {
-                _ = _taskManager.Execute(markerTask, new TaskOptions());
-                _logger.Info("IntroFingerprintExtract - Triggered Detect Episode Intros to process fingerprints");
+                var markerTask = _taskManager.ScheduledTasks.FirstOrDefault(t =>
+                    t.Name.Equals("Detect Episode Intros", StringComparison.OrdinalIgnoreCase));
+                if (markerTask != null && groupedBySeason.Count > seasonSkipCount &&
+                    !cancellationToken.IsCancellationRequested)
+                {
+                    _ = _taskManager.Execute(markerTask, new TaskOptions());
+                    _logger.Info("IntroFingerprintExtract - Triggered Detect Episode Intros to process fingerprints");
+                }
             }
 
-            _logger.Info($"IntroFingerprintExtract - Number of episodes skipped: {episodeSkipCount}");
             _logger.Info($"IntroFingerprintExtract - Number of seasons skipped: {seasonSkipCount}");
+            _logger.Info($"IntroFingerprintExtract - Number of episodes skipped: {episodeSkipCount}");
             _logger.Info("IntroFingerprintExtract - Scheduled Task Complete");
         }
 

@@ -124,6 +124,7 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
         public string IntroSkipPreferences { get; set; } = string.Empty;
 
+        [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
         public ButtonItem ClearIntroButton =>
             new ButtonItem(
                 Resources.ClearChapterMarkersTask_Description_Clears_behavior_based_intro_and_credits_markers)
@@ -132,12 +133,10 @@ namespace StrmAssistant.Options
                 ConfirmationPrompt = Resources.AreYouSureToContinue
             };
 
-        [DisplayName("")]
-        [DescriptionL("IntroSkipOptions_BlacklistShows_List_of_Series_Id_or_Season_Id_separated_by_comma_or_semicolon__Default_is_EMPTY", typeof(Resources))]
-        public string ClearIntroShows { get; set; } = string.Empty;
-
+        [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
         public GenericItemList ClearIntroResult { get; set; } = new GenericItemList();
 
+        [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
         public SpacerItem ClearIntroResultSeparator { get; set; } = new SpacerItem(SpacerSize.Small);
 
         [Browsable(false)]
@@ -152,8 +151,6 @@ namespace StrmAssistant.Options
             }
 
             ValidateShowIds(context, FingerprintBlacklistShows, Resources.InvalidShowSeasonIds);
-
-            ValidateShowIds(context, ClearIntroShows, Resources.InvalidShowSeasonIds);
         }
 
         public void ValidateShowIds(ValidationContext context, string showIds, string errorMessage)

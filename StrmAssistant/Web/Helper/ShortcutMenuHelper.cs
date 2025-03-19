@@ -90,6 +90,12 @@ const strmAssistantCommandSource = {
                     result.push({ name: lockCommandName, id: 'lock', icon: 'lock' });
                 }
             }
+            if ((options.items[0].Type === 'Series' || options.items[0].Type === 'Season') &&
+                (options.user && options.user.Policy.IsAdministrator || false)) {
+                const commandName = locale === 'zh-cn' ? '\u6E05\u9664\u7247\u5934\u6807\u8BB0' : 
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '\u6E05\u9664\u7247\u982D\u6A19\u8A18' : 'Clear Intro Markers');
+                result.push({ name: commandName, id: 'clear_intro', icon: 'clear_all' });
+            }
             return result;
         }
         if (!options.multiSelect && options.items?.length > 1 && options.items[0].Type !== 'CollectionFolder' &&
@@ -108,7 +114,8 @@ const strmAssistantCommandSource = {
             remove: 'remove',
             traverse: 'traverse',
             lock: 'lock',
-            unlock: 'unlock'
+            unlock: 'unlock',
+            clear_intro: 'clear_intro'
         };
         if (command.startsWith('delver_')) {
             const mediaSourceId = command.replace('delver_', '');

@@ -8,7 +8,6 @@ using StrmAssistant.Web.Api;
 
 namespace StrmAssistant.Web.Service
 {
-    [Authenticated]
     public class LibraryStructureService : IService, IRequiresRequest
     {
         private readonly ILogger _logger;
