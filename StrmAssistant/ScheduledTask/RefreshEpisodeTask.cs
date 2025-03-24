@@ -1,4 +1,6 @@
-﻿using MediaBrowser.Model.Logging;
+﻿using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.IO;
+using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
 using StrmAssistant.Common;
 using StrmAssistant.Properties;
@@ -13,9 +15,16 @@ namespace StrmAssistant.ScheduledTask
 {
     public class RefreshEpisodeTask : IScheduledTask, IConfigurableScheduledTask
     {
-        private readonly ILogger _logger = Plugin.Instance.Logger;
+        private readonly ILogger _logger;
+        private readonly IFileSystem _fileSystem;
 
         private static readonly Random Random = new Random();
+
+        public RefreshEpisodeTask(IFileSystem fileSystem)
+        {
+            _logger = Plugin.Instance.Logger;
+            _fileSystem = fileSystem;
+        }
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
@@ -28,6 +37,20 @@ namespace StrmAssistant.ScheduledTask
             progress.Report(0);
 
             var itemsToRefresh = Plugin.LibraryApi.FetchEpisodeRefreshTaskItems();
+
+            IsRunning = true;
+
+            var refreshOptions = new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
+            {
+                EnableRemoteContentProbe = false,
+                MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
+                ReplaceAllMetadata = true,
+                ImageRefreshMode = MetadataRefreshMode.FullRefresh,
+                ReplaceAllImages = true,
+                IsAutomated = true,
+                EnableThumbnailImageExtraction = false,
+                EnableSubtitleDownloading = false
+            };
 
             double total = itemsToRefresh.Count;
             var index = 0;
@@ -74,8 +97,7 @@ namespace StrmAssistant.ScheduledTask
                         EnableItemExclusiveFeatures(taskItem.InternalId, ExclusiveControl.CatchAllBlock,
                             ExclusiveControl.IgnoreExtSubChange);
 
-                        await taskItem.RefreshMetadata(MetadataApi.MetadataOnlyRefreshOptions, cancellationToken)
-                            .ConfigureAwait(false);
+                        await taskItem.RefreshMetadata(refreshOptions, cancellationToken).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
@@ -104,6 +126,8 @@ namespace StrmAssistant.ScheduledTask
             }
             await Task.WhenAll(tasks).ConfigureAwait(false);
 
+            IsRunning = false;
+
             progress.Report(100.0);
             _logger.Info("EpisodeRefresh - Scheduled Task Complete");
         }
@@ -129,5 +153,7 @@ namespace StrmAssistant.ScheduledTask
         public bool IsEnabled => true;
 
         public bool IsLogged => true;
+
+        public static bool IsRunning { get; private set; }
     }
 }

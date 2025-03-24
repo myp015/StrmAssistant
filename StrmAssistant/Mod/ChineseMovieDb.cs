@@ -11,10 +11,14 @@ using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Serialization;
+using StrmAssistant.Common;
+using StrmAssistant.ScheduledTask;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Threading;
 using System.Threading.Tasks;
 using static StrmAssistant.Common.LanguageUtility;
@@ -34,6 +38,7 @@ namespace StrmAssistant.Mod
         private static MethodInfo _mapLanguageToProviderLanguage;
         private static MethodInfo _getImageLanguagesParam;
         private static FieldInfo _cacheTime;
+        private static MethodInfo _getEpisodeInfoAsync;
 
         private static MethodInfo _movieDbSeriesProviderIsComplete;
         private static MethodInfo _movieDbSeriesProviderImportData;
@@ -60,12 +65,12 @@ namespace StrmAssistant.Mod
         private static PropertyInfo _seriesInfoTaskResultProperty;
 
         private static readonly AsyncLocal<string> CurrentLookupLanguageCountryCode = new AsyncLocal<string>();
-        private static readonly TimeSpan OriginalCacheTime = TimeSpan.FromHours(6);
-        private static readonly TimeSpan NewCacheTime = TimeSpan.FromHours(48);
 
         public ChineseMovieDb()
         {
             Initialize();
+
+            PatchCacheTime();
 
             if (Plugin.Instance.MetadataEnhanceStore.GetOptions().ChineseMovieDb)
             {
@@ -144,6 +149,10 @@ namespace StrmAssistant.Mod
                 var episodeRootObject = movieDbProviderBase.GetNestedType("RootObject", BindingFlags.Public);
                 _nameEpisodeInfoProperty = episodeRootObject.GetProperty("name");
                 _overviewEpisodeInfoProperty = episodeRootObject.GetProperty("overview");
+                
+                var getEpisodeInfo =
+                    movieDbProviderBase.GetMethod("GetEpisodeInfo", BindingFlags.NonPublic | BindingFlags.Instance);
+                _getEpisodeInfoAsync = AccessTools.AsyncMoveNext(getEpisodeInfo);
             }
             else
             {
@@ -181,24 +190,33 @@ namespace StrmAssistant.Mod
                 prefix: nameof(EpisodeImportDataPrefix));
         }
 
-        public static void PatchCacheTime()
+        private void PatchCacheTime()
         {
-            _cacheTime?.SetValue(null, NewCacheTime);
-
-            if (Plugin.Instance.DebugMode)
-            {
-                Plugin.Instance.Logger.Debug("Patch CacheTime Success by Reflection");
-            }
+            PatchUnpatch(PatchTracker, true, _getEpisodeInfoAsync, transpiler: nameof(GetEpisodeInfoAsyncTranspiler));
         }
 
-        public static void UnpatchCacheTime()
+        private static TimeSpan GetEpisodeCacheTime()
         {
-            _cacheTime?.SetValue(null, OriginalCacheTime);
-
-            if (Plugin.Instance.DebugMode)
+            if (RefreshEpisodeTask.IsRunning || QueueManager.IsEpisodeRefreshProcessTaskRunning)
             {
-                Plugin.Instance.Logger.Debug("Unpatch CacheTime Success by Reflection");
+                return TimeSpan.Zero;
             }
+
+            return MetadataApi.DefaultCacheTime;
+        }
+
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> GetEpisodeInfoAsyncTranspiler(
+            IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+        {
+            var codeMatcher = new CodeMatcher(instructions, generator);
+
+            codeMatcher.MatchStartForward(CodeMatch.LoadsField(_cacheTime))
+                .ThrowIfInvalid("Could not find call to MovieDbProviderBase.CacheTime")
+                .RemoveInstruction()
+                .InsertAndAdvance(CodeInstruction.Call(typeof(ChineseMovieDb), nameof(GetEpisodeCacheTime)));
+
+            return codeMatcher.Instructions();
         }
 
         private static bool IsUpdateNeeded(string currentValue, string newValue = null)

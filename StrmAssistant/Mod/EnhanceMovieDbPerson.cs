@@ -3,6 +3,7 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
+using StrmAssistant.Common;
 using StrmAssistant.ScheduledTask;
 using System;
 using System.Collections.Concurrent;
@@ -10,6 +11,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Threading;
 using System.Threading.Tasks;
 using static StrmAssistant.Common.LanguageUtility;
@@ -25,6 +27,8 @@ namespace StrmAssistant.Mod
         private static MethodInfo _movieDbSeasonProviderImportData;
         private static MethodInfo _seasonGetMetadata;
         private static MethodInfo _addPerson;
+        private static MethodInfo _ensurePersonInfoAsync;
+        private static FieldInfo _cacheTime;
 
         private static readonly ConcurrentDictionary<Season, List<PersonInfo>> SeasonPersonInfoDictionary =
             new ConcurrentDictionary<Season, List<PersonInfo>>();
@@ -50,6 +54,12 @@ namespace StrmAssistant.Mod
                 var movieDbPersonProvider = _movieDbAssembly.GetType("MovieDb.MovieDbPersonProvider");
                 _movieDbPersonProviderImportData = movieDbPersonProvider.GetMethod("ImportData",
                     BindingFlags.NonPublic | BindingFlags.Instance);
+                var ensurePersonInfo =
+                    movieDbPersonProvider.GetMethod("EnsurePersonInfo", BindingFlags.NonPublic | BindingFlags.Instance);
+                _ensurePersonInfoAsync = AccessTools.AsyncMoveNext(ensurePersonInfo);
+
+                var movieDbProviderBase = _movieDbAssembly.GetType("MovieDb.MovieDbProviderBase");
+                _cacheTime = movieDbProviderBase.GetField("CacheTime", BindingFlags.Public | BindingFlags.Static);
 
                 var movieDbSeasonProvider = _movieDbAssembly.GetType("MovieDb.MovieDbSeasonProvider");
                 _movieDbSeasonProviderImportData =
@@ -71,10 +81,35 @@ namespace StrmAssistant.Mod
         {
             PatchUnpatch(PatchTracker, apply, _movieDbPersonProviderImportData,
                 prefix: nameof(PersonImportDataPrefix));
+            PatchUnpatch(PatchTracker, apply, _ensurePersonInfoAsync, transpiler: nameof(EnsurePersonInfoAsyncTranspiler));
             PatchUnpatch(PatchTracker, apply, _movieDbSeasonProviderImportData,
                 prefix: nameof(SeasonImportDataPrefix));
             PatchUnpatch(PatchTracker, apply, _seasonGetMetadata, postfix: nameof(SeasonGetMetadataPostfix));
             PatchUnpatch(PatchTracker, apply, _addPerson, prefix: nameof(AddPersonPrefix));
+        }
+
+        private static TimeSpan GetPersonCacheTime()
+        {
+            if (RefreshPersonTask.IsRunning)
+            {
+                return TimeSpan.FromHours(48);
+            }
+
+            return MetadataApi.DefaultCacheTime;
+        }
+
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> EnsurePersonInfoAsyncTranspiler(
+            IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+        {
+            var codeMatcher = new CodeMatcher(instructions, generator);
+
+            codeMatcher.MatchStartForward(CodeMatch.LoadsField(_cacheTime))
+                .ThrowIfInvalid("Could not find call to MovieDbProviderBase.CacheTime")
+                .RemoveInstruction()
+                .InsertAndAdvance(CodeInstruction.Call(typeof(EnhanceMovieDbPerson), nameof(GetPersonCacheTime)));
+
+            return codeMatcher.Instructions();
         }
 
         private static Tuple<string, bool> ProcessPersonInfoAsExpected(string input, string placeOfBirth)

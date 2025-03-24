@@ -34,10 +34,8 @@ namespace StrmAssistant.Common
         private readonly IMediaMountManager _mediaMountManager;
         private readonly IUserManager _userManager;
 
-        public static MetadataRefreshOptions MinimumRefreshOptions;
         public static MetadataRefreshOptions MediaInfoRefreshOptions;
         public static MetadataRefreshOptions ImageCaptureRefreshOptions;
-        public static MetadataRefreshOptions FullRefreshOptions;
 
         public static ExtraType[] IncludeExtraTypes =
         {
@@ -113,17 +111,6 @@ namespace StrmAssistant.Common
             UpdateLibraryPathsInScope(Plugin.Instance.MediaInfoExtractStore.GetOptions().LibraryScope);
             FetchUsers();
 
-            MinimumRefreshOptions = new MetadataRefreshOptions(_fileSystem)
-            {
-                EnableRemoteContentProbe = false,
-                ReplaceAllMetadata = false,
-                EnableThumbnailImageExtraction = false,
-                EnableSubtitleDownloading = false,
-                ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
-                MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
-                ReplaceAllImages = false
-            };
-
             MediaInfoRefreshOptions = new MetadataRefreshOptions(_fileSystem)
             {
                 EnableRemoteContentProbe = true,
@@ -143,17 +130,6 @@ namespace StrmAssistant.Common
                 EnableSubtitleDownloading = false,
                 ImageRefreshMode = MetadataRefreshMode.Default,
                 MetadataRefreshMode = MetadataRefreshMode.Default,
-                ReplaceAllImages = true
-            };
-
-            FullRefreshOptions = new MetadataRefreshOptions(_fileSystem)
-            {
-                EnableRemoteContentProbe = true,
-                ReplaceAllMetadata = true,
-                EnableThumbnailImageExtraction = false,
-                EnableSubtitleDownloading = false,
-                ImageRefreshMode = MetadataRefreshMode.FullRefresh,
-                MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
                 ReplaceAllImages = true
             };
         }

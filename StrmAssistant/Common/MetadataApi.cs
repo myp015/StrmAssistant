@@ -34,11 +34,11 @@ namespace StrmAssistant.Common
         private readonly IJsonSerializer _jsonSerializer;
         private readonly IHttpClient _httpClient;
 
-        public static MetadataRefreshOptions MetadataOnlyRefreshOptions;
-        public const int RequestIntervalMs = 100;
-        private static long _lastRequestTicks;
-        private static readonly TimeSpan CacheTime = TimeSpan.FromHours(6.0);
         private static readonly LruCache LruCache = new LruCache(20);
+        private static long _lastRequestTicks;
+
+        public const int RequestIntervalMs = 100;
+        public static readonly TimeSpan DefaultCacheTime = TimeSpan.FromHours(6.0);
 
         public MetadataApi(ILibraryManager libraryManager, IFileSystem fileSystem,
             IServerConfigurationManager configurationManager, ILocalizationManager localizationManager,
@@ -51,20 +51,6 @@ namespace StrmAssistant.Common
             _fileSystem = fileSystem;
             _jsonSerializer = jsonSerializer;
             _httpClient = httpClient;
-
-            MetadataOnlyRefreshOptions = new MetadataRefreshOptions(fileSystem)
-            {
-                EnableRemoteContentProbe = false,
-                MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
-                ReplaceAllMetadata = true,
-                ImageRefreshMode = MetadataRefreshMode.FullRefresh,
-                ReplaceAllImages = true,
-                IsAutomated = false,
-                EnableThumbnailImageExtraction = false,
-                EnableSubtitleDownloading = false,
-                OverwriteLocalMetadataProviderIds = true,
-                ForceSave = false
-            };
         }
 
         public string GetPreferredMetadataLanguage(BaseItem item)
@@ -94,7 +80,8 @@ namespace StrmAssistant.Common
         }
 
         public async Task<MetadataResult<Person>> GetPersonMetadataFromMovieDb(Person item,
-            string preferredMetadataLanguage, CancellationToken cancellationToken)
+            string preferredMetadataLanguage, IDirectoryService directoryService,
+            CancellationToken cancellationToken)
         {
             var libraryOptions = _libraryManager.GetLibraryOptions(item);
 
@@ -104,7 +91,7 @@ namespace StrmAssistant.Common
 
             if (GetMovieDbPersonProvider() is IRemoteMetadataProvider<Person, PersonLookupInfo> provider)
             {
-                return await GetMetadataFromProvider(provider, lookupInfo, cancellationToken)
+                return await GetMetadataFromProvider(provider, directoryService, lookupInfo, cancellationToken)
                     .ConfigureAwait(false);
             }
 
@@ -119,20 +106,20 @@ namespace StrmAssistant.Common
 
             return movieDbPersonProvider;
         }
-        
+
         private Task<MetadataResult<TItemType>> GetMetadataFromProvider<TItemType, TIdType>(
-            IRemoteMetadataProvider<TItemType, TIdType> provider,
-            TIdType id, CancellationToken cancellationToken)
-            where TItemType : BaseItem, IHasLookupInfo<TIdType>, new()
+            IRemoteMetadataProvider<TItemType, TIdType> provider, IDirectoryService directoryService, TIdType id,
+            CancellationToken cancellationToken) where TItemType : BaseItem, IHasLookupInfo<TIdType>, new()
             where TIdType : ItemLookupInfo, new()
         {
             if (!(provider is IRemoteMetadataProviderWithOptions<TItemType, TIdType> providerWithOptions))
                 return provider.GetMetadata(id, cancellationToken);
+
             var options = new RemoteMetadataFetchOptions<TIdType>
             {
-                SearchInfo = id,
-                DirectoryService = MetadataOnlyRefreshOptions.DirectoryService
+                SearchInfo = id, DirectoryService = directoryService
             };
+
             return providerWithOptions.GetMetadata(options, cancellationToken);
         }
 
@@ -283,7 +270,7 @@ namespace StrmAssistant.Common
 
             var cacheFile = _fileSystem.GetFileSystemInfo(cachePath);
 
-            if (cacheFile.Exists && DateTimeOffset.UtcNow - _fileSystem.GetLastWriteTimeUtc(cacheFile) <= CacheTime)
+            if (cacheFile.Exists && DateTimeOffset.UtcNow - _fileSystem.GetLastWriteTimeUtc(cacheFile) <= DefaultCacheTime)
             {
                 result = _jsonSerializer.DeserializeFromFile<T>(cachePath);
                 LruCache.AddOrUpdateCache(cacheKey, result);

@@ -1,5 +1,6 @@
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -40,6 +41,7 @@ namespace StrmAssistant.Common
         public static Task EpisodeRefreshProcessTask;
 
         public static bool IsMediaInfoProcessTaskRunning { get; private set; }
+        public static bool IsEpisodeRefreshProcessTaskRunning { get; private set; }
 
         static QueueManager()
         {
@@ -712,6 +714,21 @@ namespace StrmAssistant.Common
                             .Tier2MaxConcurrentCount;
                         Logger.Info("Tier2 Max Concurrent Count: " + tier2MaxConcurrentCount);
 
+                        var refreshOptions =
+                            new MetadataRefreshOptions(new DirectoryService(Logger, BaseItem.FileSystem))
+                            {
+                                EnableRemoteContentProbe = false,
+                                MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
+                                ReplaceAllMetadata = true,
+                                ImageRefreshMode = MetadataRefreshMode.FullRefresh,
+                                ReplaceAllImages = true,
+                                IsAutomated = true,
+                                EnableThumbnailImageExtraction = false,
+                                EnableSubtitleDownloading = false
+                            };
+
+                        IsEpisodeRefreshProcessTaskRunning = true;
+
                         foreach (var item in itemsToRefresh)
                         {
                             var taskItem = item;
@@ -753,8 +770,8 @@ namespace StrmAssistant.Common
                                     EnableItemExclusiveFeatures(taskItem.InternalId, ExclusiveControl.CatchAllBlock,
                                         ExclusiveControl.IgnoreExtSubChange);
 
-                                    await taskItem.RefreshMetadata(MetadataApi.MetadataOnlyRefreshOptions,
-                                        cancellationToken).ConfigureAwait(false);
+                                    await taskItem.RefreshMetadata(refreshOptions, cancellationToken)
+                                        .ConfigureAwait(false);
 
                                     Logger.Info("EpisodeRefresh - Item processed: " + taskItem.Name + " - " +
                                                 taskItem.Path);
@@ -782,6 +799,8 @@ namespace StrmAssistant.Common
 
                         await Task.WhenAll(tasks).ConfigureAwait(false);
                         tasks.Clear();
+
+                        IsEpisodeRefreshProcessTaskRunning = false;
                     }
 
                     Logger.Info("EpisodeRefresh - Clear Item Queue Stopped");

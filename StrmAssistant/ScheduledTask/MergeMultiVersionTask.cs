@@ -5,9 +5,9 @@ using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
-using StrmAssistant.Common;
 using StrmAssistant.Properties;
 using System;
 using System.Collections.Generic;
@@ -38,17 +38,19 @@ namespace StrmAssistant.ScheduledTask
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly IProviderManager _providerManager;
+        private readonly IFileSystem _fileSystem;
 
         private static readonly HashSet<string> CheckKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             { "tmdb", "imdb", "tvdb" };
 
         public static readonly AsyncLocal<CollectionFolder> CurrentScanLibrary = new AsyncLocal<CollectionFolder>();
 
-        public MergeMultiVersionTask(ILibraryManager libraryManager, IProviderManager providerManager)
+        public MergeMultiVersionTask(ILibraryManager libraryManager, IProviderManager providerManager, IFileSystem fileSystem)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
             _providerManager = providerManager;
+            _fileSystem = fileSystem;
         }
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
@@ -72,7 +74,17 @@ namespace StrmAssistant.ScheduledTask
 
             if (processSeries)
             {
-                var refreshOptions = new MetadataRefreshOptions(LibraryApi.MinimumRefreshOptions);
+                var refreshOptions = new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
+                {
+                    EnableRemoteContentProbe = false,
+                    ReplaceAllMetadata = false,
+                    EnableThumbnailImageExtraction = false,
+                    EnableSubtitleDownloading = false,
+                    ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
+                    MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
+                    ReplaceAllImages = false
+                };
+
                 Traverse.Create(refreshOptions).Property("Recursive").SetValue(true);
 
                 var multiply = processMovies ? 1 : 2;

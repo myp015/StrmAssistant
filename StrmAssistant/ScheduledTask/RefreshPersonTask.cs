@@ -2,11 +2,12 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
 using StrmAssistant.Common;
-using StrmAssistant.Mod;
 using StrmAssistant.Options;
 using StrmAssistant.Properties;
 using System;
@@ -22,11 +23,13 @@ namespace StrmAssistant.ScheduledTask
     {
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
+        private readonly IFileSystem _fileSystem;
 
-        public RefreshPersonTask(ILibraryManager libraryManager)
+        public RefreshPersonTask(ILibraryManager libraryManager, IFileSystem fileSystem)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
+            _fileSystem = fileSystem;
         }
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
@@ -113,13 +116,7 @@ namespace StrmAssistant.ScheduledTask
             const int batchSize = 100;
             var tasks = new List<Task>();
 
-            var enhanceMovieDbPerson = Plugin.Instance.MetadataEnhanceStore.GetOptions().EnhanceMovieDbPerson;
-
-            if (remainingCount > 0)
-            {
-                if (enhanceMovieDbPerson) ChineseMovieDb.PatchCacheTime();
-                IsRunning = true;
-            }
+            IsRunning = true;
 
             var refreshPersonMode = Plugin.Instance.MetadataEnhanceStore.GetOptions().RefreshPersonMode;
             _logger.Info("Refresh Person Mode: " + refreshPersonMode);
@@ -127,6 +124,18 @@ namespace StrmAssistant.ScheduledTask
                 refreshPersonMode.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(p => p.Trim()), StringComparer.OrdinalIgnoreCase);
             NoAdult = refreshPersonOptions.Contains(RefreshPersonOption.NoAdult.ToString());
+
+            var refreshOptions = new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
+            {
+                EnableRemoteContentProbe = false,
+                MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
+                ReplaceAllMetadata = true,
+                ImageRefreshMode = MetadataRefreshMode.FullRefresh,
+                ReplaceAllImages = true,
+                IsAutomated = true,
+                EnableThumbnailImageExtraction = false,
+                EnableSubtitleDownloading = false
+            };
 
             for (var startIndex = 0; startIndex < remainingCount; startIndex += batchSize)
             {
@@ -192,8 +201,7 @@ namespace StrmAssistant.ScheduledTask
                             {
                                 var result = await Plugin.MetadataApi
                                     .GetPersonMetadataFromMovieDb(taskItem, serverPreferredMetadataLanguage,
-                                        cancellationToken)
-                                    .ConfigureAwait(false);
+                                        refreshOptions.DirectoryService, cancellationToken).ConfigureAwait(false);
 
                                 if (result?.Item != null)
                                 {
@@ -216,8 +224,7 @@ namespace StrmAssistant.ScheduledTask
 
                             if (!imageRefreshSkip)
                             {
-                                await taskItem.RefreshMetadata(MetadataApi.MetadataOnlyRefreshOptions, cancellationToken)
-                                    .ConfigureAwait(false);
+                                await taskItem.RefreshMetadata(refreshOptions, cancellationToken).ConfigureAwait(false);
                             }
                         }
                         catch (OperationCanceledException)
@@ -248,11 +255,7 @@ namespace StrmAssistant.ScheduledTask
                 personItems.Clear();
             }
 
-            if (remainingCount > 0)
-            {
-                if (enhanceMovieDbPerson) ChineseMovieDb.UnpatchCacheTime();
-                IsRunning = false;
-            }
+            IsRunning = false;
 
             progress.Report(100.0);
             _logger.Info("RefreshPerson - Scheduled Task Complete");
