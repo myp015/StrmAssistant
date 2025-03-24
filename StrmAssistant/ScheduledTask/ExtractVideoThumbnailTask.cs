@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using static StrmAssistant.Options.MediaInfoExtractOptions;
 
 namespace StrmAssistant.ScheduledTask
 {
@@ -41,11 +42,9 @@ namespace StrmAssistant.ScheduledTask
                 : (int?)null;
             if (cooldownSeconds.HasValue) _logger.Info("Cooldown Duration Seconds: " + cooldownSeconds.Value);
 
-            var persistMediaInfo = Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo;
-            _logger.Info("Persist MediaInfo: " + persistMediaInfo);
-            var mediaInfoRestoreMode =
-                persistMediaInfo && Plugin.Instance.MediaInfoExtractStore.GetOptions().MediaInfoRestoreMode;
-            _logger.Info("MediaInfo Restore Mode: " + mediaInfoRestoreMode);
+            var persistMediaInfoMode = Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfoMode;
+            _logger.Info("Persist MediaInfo Mode: " + persistMediaInfoMode);
+            var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
 
             var items = Plugin.VideoThumbnailApi.FetchExtractTaskItems();
             _logger.Info($"VideoThumbnailExtract - Number of items: {items.Count}");

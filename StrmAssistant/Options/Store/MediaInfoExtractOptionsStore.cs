@@ -50,11 +50,11 @@ namespace StrmAssistant.Options.Store
                 var changes = PropertyChangeDetector.DetectObjectPropertyChanges(MediaInfoExtractOptions, options);
                 var changedProperties = new HashSet<string>(changes.Select(c => c.PropertyName));
 
-                if (changedProperties.Contains(nameof(MediaInfoExtractOptions.PersistMediaInfo)))
+                if (changedProperties.Contains(nameof(MediaInfoExtractOptions.PersistMediaInfoMode)))
                 {
                     if (options.IsModSupported)
                     {
-                        if (options.PersistMediaInfo)
+                        if (options.PersistMediaInfoMode != PersistMediaInfoOption.None.ToString())
                         {
                             PatchManager.ChapterChangeTracker.Patch();
                         }
@@ -96,8 +96,7 @@ namespace StrmAssistant.Options.Store
 
                 if (changedProperties.Contains(nameof(MediaInfoExtractOptions.ExclusiveControlFeatures)) ||
                     changedProperties.Contains(nameof(MediaInfoExtractOptions.ExclusiveExtract)) ||
-                    changedProperties.Contains(nameof(MediaInfoExtractOptions.PersistMediaInfo)) ||
-                    changedProperties.Contains(nameof(MediaInfoExtractOptions.MediaInfoRestoreMode)))
+                    changedProperties.Contains(nameof(MediaInfoExtractOptions.PersistMediaInfoMode)))
                 {
                     if (options.ExclusiveExtract) UpdateExclusiveControlFeatures(options);
                 }
@@ -113,8 +112,7 @@ namespace StrmAssistant.Options.Store
         {
             if (e.Options is MediaInfoExtractOptions options)
             {
-                _logger.Info("PersistMediaInfo is set to {0}", options.PersistMediaInfo);
-                _logger.Info("MediaInfoRestoreMode is set to {0}", options.MediaInfoRestoreMode);
+                _logger.Info("PersistMediaInfoMode is set to {0}", options.PersistMediaInfoMode);
                 _logger.Info("MediaInfoJsonRootFolder is set to {0}",
                     !string.IsNullOrEmpty(options.MediaInfoJsonRootFolder) ? options.MediaInfoJsonRootFolder : "EMPTY");
                 _logger.Info("IncludeExtra is set to {0}", options.IncludeExtra);

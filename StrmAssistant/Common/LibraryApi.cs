@@ -21,6 +21,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static StrmAssistant.Common.CommonUtility;
 using static StrmAssistant.Common.LanguageUtility;
+using static StrmAssistant.Options.MediaInfoExtractOptions;
 using static StrmAssistant.Options.Utility;
 using CollectionExtensions = System.Collections.Generic.CollectionExtensions;
 
@@ -526,8 +527,8 @@ namespace StrmAssistant.Common
 
             if (!enableImageCapture) return false;
 
-            var options = Plugin.Instance.MediaInfoExtractStore.GetOptions();
-            if (options.PersistMediaInfo && options.MediaInfoRestoreMode) return false;
+            if (Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfoMode ==
+                PersistMediaInfoOption.Restore.ToString()) return false;
 
             switch (item)
             {
@@ -659,9 +660,9 @@ namespace StrmAssistant.Common
         public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, IDirectoryService directoryService,
             string source, CancellationToken cancellationToken)
         {
-            var persistMediaInfo = Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo;
-            var mediaInfoRestoreMode =
-                persistMediaInfo && Plugin.Instance.MediaInfoExtractStore.GetOptions().MediaInfoRestoreMode;
+            var persistMediaInfoMode = Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfoMode;
+            var persistMediaInfo = persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
+            var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
             var enableImageCapture = Plugin.Instance.MediaInfoExtractStore.GetOptions().EnableImageCapture;
 
             ExclusiveExtract.AllowExtractInstance(taskItem);

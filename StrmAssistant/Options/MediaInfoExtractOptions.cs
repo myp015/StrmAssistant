@@ -76,21 +76,25 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(ExclusiveExtract), SimpleCondition.IsTrue)]
         public string ExclusiveControlFeatures { get; set; } = string.Empty;
 
-        [DisplayNameL("MediaInfoExtractOptions_PersistMediaInfo_Persist_MediaInfo", typeof(Resources))]
-        [DescriptionL("MediaInfoExtractOptions_PersistMediaInfo_Persist_media_info_in_JSON_file__Default_is_OFF_", typeof(Resources))]
-        [Required]
-        public bool PersistMediaInfo { get; set; } = false;
+        public enum PersistMediaInfoOption
+        {
+            None,
+            Default,
+            Restore
+        }
 
-        [DisplayNameL("MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode", typeof(Resources))]
-        [DescriptionL("MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__and_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_", typeof(Resources))]
-        [VisibleCondition(nameof(PersistMediaInfo), SimpleCondition.IsTrue)]
-        [Required]
-        public bool MediaInfoRestoreMode { get; set; } = false;
+        [Browsable(false)]
+        public List<EditorRadioOption> PersistMediaInfoOptionList { get; set; } = new List<EditorRadioOption>();
+
+        [DisplayName("")]
+        [SelectItemsSource(nameof(PersistMediaInfoOptionList))]
+        [SelectShowRadioGroup]
+        public string PersistMediaInfoMode { get; set; } = PersistMediaInfoOption.None.ToString();
 
         [DisplayNameL("MediaInfoExtractOptions_MediaInfoJsonRootFolder_MediaInfo_Json_Root_Folder", typeof(Resources))]
         [DescriptionL("MediaInfoExtractOptions_MediaInfoJsonRootFolder_Store_or_load_media_info_JSON_files_under_this_root_folder__Default_is_EMPTY_", typeof(Resources))]
         [EditFolderPicker]
-        [VisibleCondition(nameof(PersistMediaInfo), SimpleCondition.IsTrue)]
+        [VisibleCondition(nameof(PersistMediaInfoMode), ValueCondition.IsNotEqual, PersistMediaInfoOption.None)]
         public string MediaInfoJsonRootFolder { get; set; } = string.Empty;
 
         [Browsable(false)]
@@ -148,6 +152,32 @@ namespace StrmAssistant.Options
 
                 ExclusiveControlList.Add(selectOption);
             }
+
+            PersistMediaInfoOptionList.Clear();
+            PersistMediaInfoOptionList = new List<EditorRadioOption>
+            {
+                new EditorRadioOption
+                {
+                    Value = PersistMediaInfoOption.Default,
+                    PrimaryText = Resources.MediaInfoExtractOptions_PersistMediaInfo_Persist_MediaInfo,
+                    SecondaryText =
+                        Resources
+                            .MediaInfoExtractOptions_PersistMediaInfo_Persist_media_info_in_JSON_file__Default_is_OFF_
+                },
+                new EditorRadioOption
+                {
+                    Value = PersistMediaInfoOption.Restore,
+                    PrimaryText = Resources.MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode,
+                    SecondaryText =
+                        Resources
+                            .MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__and_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_
+                },
+                new EditorRadioOption
+                {
+                    Value = PersistMediaInfoOption.None,
+                    PrimaryText = Resources.PersistMediaInfoOption_None_None
+                }
+            };
         }
     }
 }

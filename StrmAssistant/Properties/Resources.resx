@@ -399,7 +399,7 @@
     <value>MediaInfo Persist</value>
   </data>
   <data name="MediaInfoExtractOptions_PersistMediaInfo_Persist_media_info_in_JSON_file__Default_is_OFF_" xml:space="preserve">
-    <value>Store or load media info and chapters to/from JSON file and also restore video thumbnail BIF. Default is OFF.</value>
+    <value>Store or load media info and chapters to/from JSON file and also restore video thumbnail BIF.</value>
   </data>
   <data name="UIFunctionOptions_EnhanceMissingEpisodes_Missing_Episodes_Enhanced" xml:space="preserve">
     <value>View Missing Episodes Enhanced</value>
@@ -681,7 +681,7 @@
     <value>Update failed. Check error details in admin dashboard.</value>
   </data>
   <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__and_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_" xml:space="preserve">
-    <value>Only restore media info, chapter markers, and video thumbnails from JSON or BIF, skipping extraction. Default is OFF.</value>
+    <value>Only restore media info, chapter markers, and video thumbnails from JSON or BIF, skipping extraction.</value>
   </data>
   <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode" xml:space="preserve">
     <value>MediaInfo Restore Mode</value>
@@ -706,5 +706,8 @@
   </data>
   <data name="DeletePersonTask_Description_Deletes_all_persons" xml:space="preserve">
     <value>Deletes all persons</value>
+  </data>
+  <data name="PersistMediaInfoOption_None_None" xml:space="preserve">
+    <value>OFF</value>
   </data>
 </root>

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using static StrmAssistant.Mod.PatchManager;
+using static StrmAssistant.Options.MediaInfoExtractOptions;
 
 namespace StrmAssistant.Mod
 {
@@ -21,7 +22,8 @@ namespace StrmAssistant.Mod
         {
             Initialize();
 
-            if (Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo)
+            if (Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfoMode !=
+                PersistMediaInfoOption.None.ToString())
             {
                 Patch();
             }

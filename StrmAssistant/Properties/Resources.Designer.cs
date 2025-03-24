@@ -1516,6 +1516,15 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to None.
+        /// </summary>
+        public static string PersistMediaInfoOption_None_None {
+            get {
+                return ResourceManager.GetString("PersistMediaInfoOption_None_None", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Persists media info and chapter markers to json file.
         /// </summary>
         public static string PersistMediaInfoTask_Description_Persists_media_info_to_json_file {

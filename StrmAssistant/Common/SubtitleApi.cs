@@ -19,6 +19,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using static StrmAssistant.Options.MediaInfoExtractOptions;
 
 namespace StrmAssistant.Common
 {
@@ -216,8 +217,8 @@ namespace StrmAssistant.Common
                 currentStreams.AddRange(externalSubtitleStreams);
                 _itemRepository.SaveMediaStreams(item.InternalId, currentStreams, CancellationToken.None);
 
-                if (Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo &&
-                    Plugin.LibraryApi.IsLibraryInScope(item))
+                if (Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfoMode !=
+                    PersistMediaInfoOption.None.ToString() && Plugin.LibraryApi.IsLibraryInScope(item))
                 {
                     _ = Plugin.MediaInfoApi.SerializeMediaInfo(item.InternalId, directoryService, true,
                         "External Subtitle Update").ConfigureAwait(false);

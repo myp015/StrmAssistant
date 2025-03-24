@@ -43,6 +43,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using static StrmAssistant.Options.ExperienceEnhanceOptions;
 using static StrmAssistant.Options.GeneralOptions;
+using static StrmAssistant.Options.MediaInfoExtractOptions;
 using static StrmAssistant.Options.Utility;
 
 namespace StrmAssistant
@@ -172,8 +173,8 @@ namespace StrmAssistant
         {
             var item = e.Argument.Item;
 
-            if (MediaInfoExtractStore.GetOptions().PersistMediaInfo && (item is Video || item is Audio) &&
-                item.DateLastRefreshed != DateTimeOffset.MinValue)
+            if (MediaInfoExtractStore.GetOptions().PersistMediaInfoMode != PersistMediaInfoOption.None.ToString() &&
+                (item is Video || item is Audio) && item.DateLastRefreshed != DateTimeOffset.MinValue)
             {
                 var directoryService = new DirectoryService(Logger, _fileSystem);
 
@@ -260,7 +261,7 @@ namespace StrmAssistant
                 {
                     var deserializeResult = LibraryApi.HasMediaInfo(e.Item);
 
-                    if (MediaInfoExtractStore.GetOptions().PersistMediaInfo)
+                    if (MediaInfoExtractStore.GetOptions().PersistMediaInfoMode != PersistMediaInfoOption.None.ToString())
                     {
                         var directoryService = new DirectoryService(Logger, _fileSystem);
 
@@ -358,8 +359,8 @@ namespace StrmAssistant
 
         private void OnItemRemoved(object sender, ItemChangeEventArgs e)
         {
-            if ((e.Item is Video || e.Item is Audio) && !(MediaInfoExtractStore.GetOptions().PersistMediaInfo &&
-                                                          MediaInfoExtractStore.GetOptions().MediaInfoRestoreMode))
+            if ((e.Item is Video || e.Item is Audio) && MediaInfoExtractStore.GetOptions().PersistMediaInfoMode !=
+                PersistMediaInfoOption.Restore.ToString())
             {
                 var directoryService = new DirectoryService(Logger, _fileSystem);
                 MediaInfoApi.DeleteMediaInfoJson(e.Item, directoryService, "Item Removed Event");

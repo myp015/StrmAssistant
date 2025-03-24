@@ -32,7 +32,7 @@ namespace StrmAssistant.Options
                 options.ExclusiveControlFeatures?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries) ??
                 Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
 
-            if (options.PersistMediaInfo && options.MediaInfoRestoreMode)
+            if (options.PersistMediaInfoMode == PersistMediaInfoOption.Restore.ToString())
             {
                 featureSet.Add(ExclusiveControl.IgnoreFileChange.ToString());
                 featureSet.Add(ExclusiveControl.CatchAllBlock.ToString());

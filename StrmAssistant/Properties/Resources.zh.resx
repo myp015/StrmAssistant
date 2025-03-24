@@ -312,7 +312,7 @@
     <value>媒体信息持久化</value>
   </data>
   <data name="MediaInfoExtractOptions_PersistMediaInfo_Persist_media_info_in_JSON_file__Default_is_OFF_" xml:space="preserve">
-    <value>保存或加载媒体信息和章节片头片尾标记至/自 JSON 文件，以及恢复预览缩略图 BIF，默认关闭。</value>
+    <value>保存或加载媒体信息和章节片头片尾标记至/自 JSON 文件，以及恢复预览缩略图 BIF。</value>
   </data>
   <data name="UIFunctionOptions_EnhanceMissingEpisodes_Missing_Episodes_Enhanced" xml:space="preserve">
     <value>查看缺少的集增强</value>
@@ -594,7 +594,7 @@
     <value>更新失败，请至控制台查看详细错误信息。</value>
   </data>
   <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__and_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_" xml:space="preserve">
-    <value>仅从 JSON 或 BIF 恢复媒体信息，章节片头片尾标记，预览缩略图，跳过实际提取，默认关闭。</value>
+    <value>仅从 JSON 或 BIF 恢复媒体信息，章节片头片尾标记，预览缩略图，跳过实际提取。</value>
   </data>
   <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode" xml:space="preserve">
     <value>媒体信息恢复模式</value>
@@ -619,5 +619,8 @@
   </data>
   <data name="DeletePersonTask_Description_Deletes_all_persons" xml:space="preserve">
     <value>清除所有人员数据</value>
+  </data>
+  <data name="PersistMediaInfoOption_None_None" xml:space="preserve">
+    <value>关闭</value>
   </data>
 </root>
