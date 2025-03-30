@@ -27,6 +27,7 @@ namespace StrmAssistant.Common
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly IItemRepository _itemRepository;
+        private readonly IFileSystem _fileSystem;
 
         private static readonly PatchTracker PatchTracker =
             new PatchTracker(typeof(SubtitleApi),
@@ -45,6 +46,7 @@ namespace StrmAssistant.Common
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
             _itemRepository = itemRepository;
+            _fileSystem = fileSystem;
 
             try
             {
@@ -139,6 +141,20 @@ namespace StrmAssistant.Common
                 default:
                     throw new NotImplementedException();
             }
+        }
+
+        public MetadataRefreshOptions GetExternalSubtitleRefreshOptions()
+        {
+            return new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
+            {
+                EnableRemoteContentProbe = true,
+                MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
+                ReplaceAllMetadata = false,
+                ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
+                ReplaceAllImages = false,
+                EnableThumbnailImageExtraction = false,
+                EnableSubtitleDownloading = false
+            };
         }
 
         public bool HasExternalSubtitleChanged(BaseItem item, IDirectoryService directoryService, bool clearCache)

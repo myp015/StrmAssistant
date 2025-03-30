@@ -6,6 +6,7 @@ using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Playlists;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
@@ -32,6 +33,7 @@ namespace StrmAssistant.Common
     {
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
+        private readonly IProviderManager _providerManager;
         private readonly IFileSystem _fileSystem;
         private readonly IMediaMountManager _mediaMountManager;
         private readonly IUserManager _userManager;
@@ -98,11 +100,12 @@ namespace StrmAssistant.Common
         public static Dictionary<User, bool> AllUsers = new Dictionary<User, bool>();
         public static string[] AdminOrderedViews = Array.Empty<string>();
 
-        public LibraryApi(ILibraryManager libraryManager, IFileSystem fileSystem, IMediaMountManager mediaMountManager,
-            IUserManager userManager)
+        public LibraryApi(ILibraryManager libraryManager, IProviderManager providerManager, IFileSystem fileSystem,
+            IMediaMountManager mediaMountManager, IUserManager userManager)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
+            _providerManager = providerManager;
             _fileSystem = fileSystem;
             _mediaMountManager = mediaMountManager;
             _userManager = userManager;
@@ -656,16 +659,7 @@ namespace StrmAssistant.Common
             var fileExtension = Path.GetExtension(filePath).TrimStart('.');
             var extractSkip = mediaInfoRestoreMode || ExcludeMediaExtensions.Contains(fileExtension);
 
-            var refreshOptions = new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
-            {
-                EnableRemoteContentProbe = true,
-                ReplaceAllMetadata = true,
-                EnableThumbnailImageExtraction = false,
-                EnableSubtitleDownloading = false,
-                ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
-                MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
-                ReplaceAllImages = false
-            };
+            var refreshOptions = Plugin.MediaInfoApi.GetMediaInfoRefreshOptions();
 
             var directoryService = refreshOptions.DirectoryService;
 
@@ -676,6 +670,16 @@ namespace StrmAssistant.Common
                 if (file?.Exists != true) return null;
             }
 
+            var collectionFolders = (BaseItem[])_libraryManager.GetCollectionFolders(taskItem);
+            var libraryOptions = _libraryManager.GetLibraryOptions(taskItem);
+            var dummyLibraryOptions = CopyLibraryOptions(libraryOptions);
+            dummyLibraryOptions.DisabledLocalMetadataReaders = new[] { "Nfo" };
+            dummyLibraryOptions.MetadataSavers = Array.Empty<string>();
+            foreach (var option in dummyLibraryOptions.TypeOptions)
+            {
+                option.MetadataFetchers = Array.Empty<string>();
+            }
+
             var imageCapture = false;
 
             if (!extractSkip && enableImageCapture && !taskItem.HasImage(ImageType.Primary))
@@ -683,11 +687,12 @@ namespace StrmAssistant.Common
                 EnableImageCapture.AllowImageCaptureInstance(taskItem);
                 imageCapture = true;
 
-                refreshOptions.ImageRefreshMode = MetadataRefreshMode.Default;
-                refreshOptions.MetadataRefreshMode = MetadataRefreshMode.Default;
+                refreshOptions.ImageRefreshMode = MetadataRefreshMode.FullRefresh;
                 refreshOptions.ReplaceAllImages = true;
 
-                await taskItem.RefreshMetadata(refreshOptions, cancellationToken).ConfigureAwait(false);
+                await _providerManager
+                    .RefreshSingleItem(taskItem, refreshOptions, collectionFolders, dummyLibraryOptions,
+                        cancellationToken).ConfigureAwait(false);
             }
 
             if (!imageCapture)
@@ -712,7 +717,14 @@ namespace StrmAssistant.Common
 
                 if (extractSkip) return null;
 
-                await Plugin.MediaInfoApi.GetPlaybackMediaSources(taskItem, cancellationToken).ConfigureAwait(false);
+                foreach (var option in dummyLibraryOptions.TypeOptions)
+                {
+                    option.ImageFetchers = Array.Empty<string>();
+                }
+
+                await _providerManager
+                    .RefreshSingleItem(taskItem, refreshOptions, collectionFolders, dummyLibraryOptions, cancellationToken)
+                    .ConfigureAwait(false);
             }
 
             if (persistMediaInfo)
@@ -722,6 +734,83 @@ namespace StrmAssistant.Common
             }
 
             return true;
+        }
+
+        public static LibraryOptions CopyLibraryOptions(LibraryOptions options)
+        {
+            return new LibraryOptions
+            {
+                EnableArchiveMediaFiles = options.EnableArchiveMediaFiles,
+                EnablePhotos = options.EnablePhotos,
+                EnableRealtimeMonitor = options.EnableRealtimeMonitor,
+                EnableMarkerDetection = options.EnableMarkerDetection,
+                EnableMarkerDetectionDuringLibraryScan = options.EnableMarkerDetectionDuringLibraryScan,
+                IntroDetectionFingerprintLength = options.IntroDetectionFingerprintLength,
+                EnableChapterImageExtraction = options.EnableChapterImageExtraction,
+                ExtractChapterImagesDuringLibraryScan = options.ExtractChapterImagesDuringLibraryScan,
+                DownloadImagesInAdvance = options.DownloadImagesInAdvance,
+                CacheImages = options.CacheImages,
+                PathInfos = options.PathInfos,
+                IgnoreHiddenFiles = options.IgnoreHiddenFiles,
+                IgnoreFileExtensions = options.IgnoreFileExtensions,
+                SaveLocalMetadata = options.SaveLocalMetadata,
+                SaveMetadataHidden = options.SaveMetadataHidden,
+                SaveLocalThumbnailSets = options.SaveLocalThumbnailSets,
+                ImportPlaylists = options.ImportPlaylists,
+                EnableAutomaticSeriesGrouping = options.EnableAutomaticSeriesGrouping,
+                ShareEmbeddedMusicAlbumImages = options.ShareEmbeddedMusicAlbumImages,
+                EnableEmbeddedTitles = options.EnableEmbeddedTitles,
+                EnableAudioResume = options.EnableAudioResume,
+                AutoGenerateChapters = options.AutoGenerateChapters,
+                AutomaticRefreshIntervalDays = options.AutomaticRefreshIntervalDays,
+                PlaceholderMetadataRefreshIntervalDays = options.PlaceholderMetadataRefreshIntervalDays,
+                PreferredMetadataLanguage = options.PreferredMetadataLanguage,
+                PreferredImageLanguage = options.PreferredImageLanguage,
+                ContentType = options.ContentType,
+                MetadataCountryCode = options.MetadataCountryCode,
+                MetadataSavers = options.MetadataSavers,
+                DisabledLocalMetadataReaders = options.DisabledLocalMetadataReaders,
+                LocalMetadataReaderOrder = options.LocalMetadataReaderOrder,
+                DisabledLyricsFetchers = options.DisabledLyricsFetchers,
+                SaveLyricsWithMedia = options.SaveLyricsWithMedia,
+                LyricsDownloadMaxAgeDays = options.LyricsDownloadMaxAgeDays,
+                LyricsFetcherOrder = options.LyricsFetcherOrder,
+                LyricsDownloadLanguages = options.LyricsDownloadLanguages,
+                DisabledSubtitleFetchers = options.DisabledSubtitleFetchers,
+                SubtitleFetcherOrder = options.SubtitleFetcherOrder,
+                SkipSubtitlesIfEmbeddedSubtitlesPresent = options.SkipSubtitlesIfEmbeddedSubtitlesPresent,
+                SkipSubtitlesIfAudioTrackMatches = options.SkipSubtitlesIfAudioTrackMatches,
+                SubtitleDownloadLanguages = options.SubtitleDownloadLanguages,
+                SubtitleDownloadMaxAgeDays = options.SubtitleDownloadMaxAgeDays,
+                RequirePerfectSubtitleMatch = options.RequirePerfectSubtitleMatch,
+                SaveSubtitlesWithMedia = options.SaveSubtitlesWithMedia,
+                ForcedSubtitlesOnly = options.ForcedSubtitlesOnly,
+                HearingImpairedSubtitlesOnly = options.HearingImpairedSubtitlesOnly,
+                CollapseSingleItemFolders = options.CollapseSingleItemFolders,
+                EnableAdultMetadata = options.EnableAdultMetadata,
+                ImportCollections = options.ImportCollections,
+                MinCollectionItems = options.MinCollectionItems,
+                MusicFolderStructure = options.MusicFolderStructure,
+                MinResumePct = options.MinResumePct,
+                MaxResumePct = options.MaxResumePct,
+                MinResumeDurationSeconds = options.MinResumeDurationSeconds,
+                ThumbnailImagesIntervalSeconds = options.ThumbnailImagesIntervalSeconds,
+                SampleIgnoreSize = options.SampleIgnoreSize,
+                TypeOptions = options.TypeOptions.Select(t =>
+                    {
+                        var typeOption = new TypeOptions
+                        {
+                            Type = t.Type,
+                            MetadataFetchers = t.MetadataFetchers,
+                            MetadataFetcherOrder = t.MetadataFetcherOrder,
+                            ImageFetchers = t.ImageFetchers,
+                            ImageFetcherOrder = t.ImageFetcherOrder,
+                            ImageOptions = t.ImageOptions
+                        };
+                        return typeOption;
+                    })
+                    .ToArray()
+            };
         }
 
         public static bool IsFileShortcut(string path)

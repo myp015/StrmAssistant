@@ -1,4 +1,3 @@
-using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
@@ -39,16 +38,7 @@ namespace StrmAssistant.ScheduledTask
             var items = Plugin.LibraryApi.FetchPostExtractTaskItems(false);
             _logger.Info("ExternalSubtitle - Number of items: " + items.Count);
 
-            var refreshOptions = new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
-            {
-                EnableRemoteContentProbe = true,
-                ReplaceAllMetadata = false,
-                EnableThumbnailImageExtraction = false,
-                EnableSubtitleDownloading = false,
-                ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
-                MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
-                ReplaceAllImages = false
-            };
+            var refreshOptions = Plugin.SubtitleApi.GetExternalSubtitleRefreshOptions();
 
             double total = items.Count;
             var index = 0;

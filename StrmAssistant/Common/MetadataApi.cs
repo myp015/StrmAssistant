@@ -52,6 +52,34 @@ namespace StrmAssistant.Common
             _jsonSerializer = jsonSerializer;
             _httpClient = httpClient;
         }
+        
+        public MetadataRefreshOptions GetMetadataFullRefreshOptions()
+        {
+            return new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
+            {
+                EnableRemoteContentProbe = false,
+                MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
+                ReplaceAllMetadata = true,
+                ImageRefreshMode = MetadataRefreshMode.FullRefresh,
+                ReplaceAllImages = true,
+                EnableThumbnailImageExtraction = false,
+                EnableSubtitleDownloading = false
+            };
+        }
+
+        public MetadataRefreshOptions GetMetadataValidationRefreshOptions()
+        {
+            return new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
+            {
+                EnableRemoteContentProbe = false,
+                MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
+                ReplaceAllMetadata = false,
+                ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
+                ReplaceAllImages = false,
+                EnableThumbnailImageExtraction = false,
+                EnableSubtitleDownloading = false
+            };
+        }
 
         public string GetPreferredMetadataLanguage(BaseItem item)
         {

@@ -128,7 +128,7 @@ namespace StrmAssistant
 
             if (IsModSupported) PatchManager.Initialize();
 
-            LibraryApi = new LibraryApi(libraryManager, fileSystem, mediaMountManager, userManager);
+            LibraryApi = new LibraryApi(libraryManager, providerManager, fileSystem, mediaMountManager, userManager);
             MediaInfoApi = new MediaInfoApi(libraryManager, fileSystem, providerManager, mediaSourceManager,
                 itemRepository, jsonSerializer, libraryMonitor);
             ChapterApi = new ChapterApi(libraryManager, itemRepository, jsonSerializer);
@@ -316,16 +316,7 @@ namespace StrmAssistant
 
                 if (targetItem != null)
                 {
-                    var refreshOptions = new MetadataRefreshOptions(new DirectoryService(Logger, _fileSystem))
-                    {
-                        EnableRemoteContentProbe = true,
-                        ReplaceAllMetadata = true,
-                        EnableThumbnailImageExtraction = false,
-                        EnableSubtitleDownloading = false,
-                        ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
-                        MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
-                        ReplaceAllImages = false
-                    };
+                    var refreshOptions = MediaInfoApi.GetMediaInfoRefreshOptions();
 
                     MediaInfoApi.QueueRefreshAlternateVersions(targetItem, refreshOptions, false);
                 }

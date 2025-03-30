@@ -41,7 +41,6 @@ namespace StrmAssistant.Common
                 Plugin.Instance.IsModSupported ? PatchApproach.Harmony : PatchApproach.Reflection);
 
         private readonly bool _fallbackApproach;
-        private readonly MethodInfo _getPlaybackMediaSources;
         private readonly MethodInfo _getStaticMediaSources;
 
         internal class MediaSourceWithChapters
@@ -68,13 +67,6 @@ namespace StrmAssistant.Common
             {
                 try
                 {
-                    _getPlaybackMediaSources = mediaSourceManager.GetType()
-                        .GetMethod("GetPlayackMediaSources",
-                            new[]
-                            {
-                                typeof(BaseItem), typeof(User), typeof(bool), typeof(string), typeof(bool),
-                                typeof(bool), typeof(DeviceProfile), typeof(CancellationToken)
-                            });
                     _getStaticMediaSources = mediaSourceManager.GetType()
                         .GetMethod("GetStaticMediaSources",
                             new[]
@@ -93,15 +85,13 @@ namespace StrmAssistant.Common
                     }
                 }
 
-                if (_getPlaybackMediaSources is null || _getStaticMediaSources is null)
+                if (_getStaticMediaSources is null)
                 {
                     _logger.Warn($"{PatchTracker.PatchType.Name} Init Failed");
                     PatchTracker.FallbackPatchApproach = PatchApproach.None;
                 }
                 else if (Plugin.Instance.IsModSupported)
                 {
-                    PatchManager.ReversePatch(PatchTracker, _getPlaybackMediaSources,
-                        nameof(GetPlaybackMediaSourcesStub));
                     PatchManager.ReversePatch(PatchTracker, _getStaticMediaSources,
                         nameof(GetStaticMediaSourcesStub));
                 }
@@ -133,55 +123,11 @@ namespace StrmAssistant.Common
             }
         }
 
-#pragma warning disable CS1998
-        [HarmonyReversePatch]
-        private static async Task<List<MediaSourceInfo>> GetPlaybackMediaSourcesStub(IMediaSourceManager instance,
-            BaseItem item, User user, bool allowMediaProbe, string probeMediaSourceId, bool enablePathSubstitution,
-            bool fillChapters, DeviceProfile deviceProfile, CancellationToken cancellationToken) =>
-            throw new NotImplementedException();
-#pragma warning restore CS1998
-
         [HarmonyReversePatch]
         private static List<MediaSourceInfo> GetStaticMediaSourcesStub(IMediaSourceManager instance, BaseItem item,
             bool enableAlternateMediaSources, bool enablePathSubstitution, bool fillChapters,
             LibraryOptions libraryOptions, DeviceProfile deviceProfile, User user = null) =>
             throw new NotImplementedException();
-
-        private Task<List<MediaSourceInfo>> GetPlaybackMediaSourcesByApi(BaseItem item, string probeMediaSourceId,
-            CancellationToken cancellationToken)
-        {
-            return _mediaSourceManager
-                .GetPlayackMediaSources(item, null, true, probeMediaSourceId, false, null,
-                    cancellationToken);
-        }
-
-        private Task<List<MediaSourceInfo>> GetPlaybackMediaSourcesByRef(BaseItem item,
-            string probeMediaSourceId, CancellationToken cancellationToken)
-        {
-            switch (PatchTracker.FallbackPatchApproach)
-            {
-                case PatchApproach.Harmony:
-                    return GetPlaybackMediaSourcesStub(_mediaSourceManager, item, null, true, probeMediaSourceId,
-                        false, false, null, cancellationToken);
-                case PatchApproach.Reflection:
-                    return (Task<List<MediaSourceInfo>>)_getPlaybackMediaSources.Invoke(_mediaSourceManager,
-                        new object[]
-                        {
-                            item, null, true, probeMediaSourceId, false, false, null, cancellationToken
-                        });
-                default:
-                    throw new NotImplementedException();
-            }
-        }
-
-        public Task<List<MediaSourceInfo>> GetPlaybackMediaSources(BaseItem item, CancellationToken cancellationToken)
-        {
-            var mediaSourceId = item.GetDefaultMediaSourceId();
-
-            return !_fallbackApproach
-                ? GetPlaybackMediaSourcesByApi(item, mediaSourceId, cancellationToken)
-                : GetPlaybackMediaSourcesByRef(item, mediaSourceId, cancellationToken);
-        }
 
         private List<MediaSourceInfo> GetStaticMediaSourcesByApi(BaseItem item, bool enableAlternateMediaSources,
             LibraryOptions libraryOptions)
@@ -213,6 +159,20 @@ namespace StrmAssistant.Common
             return !_fallbackApproach
                 ? GetStaticMediaSourcesByApi(item, enableAlternateMediaSources, options)
                 : GetStaticMediaSourcesByRef(item, enableAlternateMediaSources, options);
+        }
+
+        public MetadataRefreshOptions GetMediaInfoRefreshOptions()
+        {
+            return new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
+            {
+                EnableRemoteContentProbe = true,
+                MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
+                ReplaceAllMetadata = false,
+                ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
+                ReplaceAllImages = false,
+                EnableThumbnailImageExtraction = false,
+                EnableSubtitleDownloading = false
+            };
         }
 
         public static string GetMediaInfoJsonPath(BaseItem item)

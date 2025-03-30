@@ -2,7 +2,6 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
@@ -125,17 +124,7 @@ namespace StrmAssistant.ScheduledTask
                     .Select(p => p.Trim()), StringComparer.OrdinalIgnoreCase);
             NoAdult = refreshPersonOptions.Contains(RefreshPersonOption.NoAdult.ToString());
 
-            var refreshOptions = new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
-            {
-                EnableRemoteContentProbe = false,
-                MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
-                ReplaceAllMetadata = true,
-                ImageRefreshMode = MetadataRefreshMode.FullRefresh,
-                ReplaceAllImages = true,
-                IsAutomated = true,
-                EnableThumbnailImageExtraction = false,
-                EnableSubtitleDownloading = false
-            };
+            var refreshOptions = Plugin.MetadataApi.GetMetadataFullRefreshOptions();
 
             for (var startIndex = 0; startIndex < remainingCount; startIndex += batchSize)
             {

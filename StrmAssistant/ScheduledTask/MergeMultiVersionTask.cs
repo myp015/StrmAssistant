@@ -74,16 +74,7 @@ namespace StrmAssistant.ScheduledTask
 
             if (processSeries)
             {
-                var refreshOptions = new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
-                {
-                    EnableRemoteContentProbe = false,
-                    ReplaceAllMetadata = false,
-                    EnableThumbnailImageExtraction = false,
-                    EnableSubtitleDownloading = false,
-                    ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
-                    MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
-                    ReplaceAllImages = false
-                };
+                var refreshOptions = Plugin.MetadataApi.GetMetadataValidationRefreshOptions();
 
                 Traverse.Create(refreshOptions).Property("Recursive").SetValue(true);
 
