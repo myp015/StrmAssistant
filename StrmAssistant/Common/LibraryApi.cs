@@ -997,7 +997,7 @@ namespace StrmAssistant.Common
                             Uri.TryCreate(mountPath, UriKind.Absolute, out var uri) && uri.IsAbsoluteUri &&
                             !string.IsNullOrEmpty(mountPath) && !IsFileShortcut(mountPath))
                         {
-                            mountPaths.Add(mountPath, uri.Scheme == Uri.UriSchemeFile);
+                            mountPaths.TryAdd(mountPath, uri.Scheme == Uri.UriSchemeFile);
                         }
                     }
                     else if (IsSymlink(source.Path))
@@ -1008,7 +1008,7 @@ namespace StrmAssistant.Common
                             Uri.TryCreate(targetPath, UriKind.Absolute, out var uri) && uri.IsAbsoluteUri &&
                             uri.Scheme == Uri.UriSchemeFile)
                         {
-                            mountPaths.Add(targetPath, true);
+                            mountPaths.TryAdd(targetPath, true);
                         }
                     }
                 }
