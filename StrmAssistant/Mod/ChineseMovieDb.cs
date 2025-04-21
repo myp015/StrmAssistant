@@ -373,7 +373,16 @@ namespace StrmAssistant.Mod
 
             CurrentLookupLanguageCountryCode.Value = lookupLanguageCountryCode;
 
-            var seriesInfo = Traverse.Create(__result).Property("Result").GetValue();
+            object seriesInfo = null;
+
+            try
+            {
+                seriesInfo = Traverse.Create(__result).Property("Result").GetValue();
+            }
+            catch
+            {
+                // ignored
+            }
 
             if (seriesInfo != null)
             {

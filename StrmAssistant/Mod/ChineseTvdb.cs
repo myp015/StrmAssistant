@@ -283,7 +283,16 @@ namespace StrmAssistant.Mod
         private static void GetTvdbSeasonPostfix(SeasonInfo id, IDirectoryService directoryService,
             CancellationToken cancellationToken, Task __result)
         {
-            var tvdbSeason = Traverse.Create(__result).Property("Result")?.GetValue();
+            object tvdbSeason = null;
+
+            try
+            {
+                tvdbSeason = Traverse.Create(__result).Property("Result")?.GetValue();
+            }
+            catch
+            {
+                // ignored
+            }
 
             if (tvdbSeason != null)
             {
@@ -342,8 +351,17 @@ namespace StrmAssistant.Mod
         private static void GetEpisodeDataPostfix(EpisodeInfo searchInfo, bool fillExtendedInfo,
             IDirectoryService directoryService, CancellationToken cancellationToken, Task __result)
         {
-            var taskResult = Traverse.Create(__result).Property("Result")?.GetValue();
-            var tvdbEpisode = Traverse.Create(taskResult)?.Property("Item1")?.GetValue();
+            object tvdbEpisode = null;
+
+            try
+            {
+                var taskResult = Traverse.Create(__result).Property("Result")?.GetValue();
+                tvdbEpisode = Traverse.Create(taskResult)?.Property("Item1")?.GetValue();
+            }
+            catch
+            {
+                // ignored
+            }
 
             if (tvdbEpisode != null)
             {
