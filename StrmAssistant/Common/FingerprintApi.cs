@@ -5,6 +5,7 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.MediaEncoding;
+using MediaBrowser.Controller.Persistence;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
@@ -29,6 +30,7 @@ namespace StrmAssistant.Common
     {
         private readonly ILibraryManager _libraryManager;
         private readonly IFileSystem _fileSystem;
+        private readonly IItemRepository _itemRepository;
         private readonly ILogger _logger;
 
         private static readonly PatchTracker PatchTracker =
@@ -44,12 +46,13 @@ namespace StrmAssistant.Common
 
         public FingerprintApi(ILibraryManager libraryManager, IFileSystem fileSystem,
             IApplicationPaths applicationPaths, IFfmpegManager ffmpegManager, IMediaEncoder mediaEncoder,
-            IMediaMountManager mediaMountManager, IJsonSerializer jsonSerializer,
+            IMediaMountManager mediaMountManager, IJsonSerializer jsonSerializer, IItemRepository itemRepository,
             IServerApplicationHost serverApplicationHost)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
             _fileSystem = fileSystem;
+            _itemRepository = itemRepository;
 
             UpdateLibraryPathsInScope();
 
@@ -339,7 +342,7 @@ namespace StrmAssistant.Common
         public bool IsExtractNeeded(BaseItem item)
         {
             return !Plugin.ChapterApi.HasIntro(item) &&
-                   string.IsNullOrEmpty(BaseItem.ItemRepository.GetIntroDetectionFailureResult(item.InternalId));
+                   string.IsNullOrEmpty(_itemRepository.GetIntroDetectionFailureResult(item.InternalId));
         }
 
         public List<Episode> FetchIntroPreExtractTaskItems()

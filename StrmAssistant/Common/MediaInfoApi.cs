@@ -205,7 +205,7 @@ namespace StrmAssistant.Common
                 {
                     var options = _libraryManager.GetLibraryOptions(item);
                     var mediaSources = item.GetMediaSources(false, false, options);
-                    var chapters = BaseItem.ItemRepository.GetChapters(item);
+                    var chapters = _itemRepository.GetChapters(item);
                     var mediaSourcesWithChapters = mediaSources.Select(mediaSource =>
                             new MediaSourceWithChapters
                                 { MediaSourceInfo = mediaSource, Chapters = chapters })
@@ -232,9 +232,7 @@ namespace StrmAssistant.Common
                         if (item is Episode)
                         {
                             jsonItem.ZeroFingerprintConfidence =
-                                !string.IsNullOrEmpty(
-                                    BaseItem.ItemRepository.GetIntroDetectionFailureResult(
-                                        item.InternalId));
+                                !string.IsNullOrEmpty(_itemRepository.GetIntroDetectionFailureResult(item.InternalId));
                         }
 
                         if (item is Audio)
@@ -366,7 +364,7 @@ namespace StrmAssistant.Common
 
                             if (video is Episode && mediaSourceWithChapters.ZeroFingerprintConfidence is true)
                             {
-                                BaseItem.ItemRepository.LogIntroDetectionFailureFailure(video.InternalId,
+                                _itemRepository.LogIntroDetectionFailureFailure(video.InternalId,
                                     item.DateModified.ToUnixTimeSeconds());
                             }
                         }
@@ -446,7 +444,7 @@ namespace StrmAssistant.Common
 
                     if (mediaSourceWithChapters.ZeroFingerprintConfidence is true)
                     {
-                        BaseItem.ItemRepository.LogIntroDetectionFailureFailure(item.InternalId,
+                        _itemRepository.LogIntroDetectionFailureFailure(item.InternalId,
                             item.DateModified.ToUnixTimeSeconds());
 
                         _logger.Info("ChapterInfoPersist - Log Zero Fingerprint Confidence (" + source + "): " + mediaInfoJsonPath);

@@ -6,7 +6,6 @@ using MediaBrowser.Controller.Session;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Querying;
-using MediaBrowser.Model.Serialization;
 using StrmAssistant.IntroSkip;
 using System;
 using System.Collections.Generic;
@@ -21,16 +20,14 @@ namespace StrmAssistant.Common
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly IItemRepository _itemRepository;
-        private readonly IJsonSerializer _jsonSerializer;
 
         private const string MarkerSuffix = "#SA";
 
-        public ChapterApi(ILibraryManager libraryManager, IItemRepository itemRepository, IJsonSerializer jsonSerializer)
+        public ChapterApi(ILibraryManager libraryManager, IItemRepository itemRepository)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
             _itemRepository = itemRepository;
-            _jsonSerializer = jsonSerializer;
         }
 
         public bool HasIntro(BaseItem item)

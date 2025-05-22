@@ -133,9 +133,9 @@ namespace StrmAssistant
             LibraryApi = new LibraryApi(libraryManager, providerManager, fileSystem, mediaMountManager, userManager);
             MediaInfoApi = new MediaInfoApi(libraryManager, fileSystem, providerManager, mediaSourceManager,
                 itemRepository, jsonSerializer, libraryMonitor);
-            ChapterApi = new ChapterApi(libraryManager, itemRepository, jsonSerializer);
+            ChapterApi = new ChapterApi(libraryManager, itemRepository);
             FingerprintApi = new FingerprintApi(libraryManager, fileSystem, applicationPaths, ffmpegManager,
-                mediaEncoder, mediaMountManager, jsonSerializer, serverApplicationHost);
+                mediaEncoder, mediaMountManager, jsonSerializer, itemRepository, serverApplicationHost);
             PlaySessionMonitor = new PlaySessionMonitor(libraryManager, userManager, sessionManager);
             NotificationApi = new NotificationApi(notificationManager, userManager, sessionManager);
             SubtitleApi = new SubtitleApi(libraryManager, fileSystem, mediaProbeManager, localizationManager,
