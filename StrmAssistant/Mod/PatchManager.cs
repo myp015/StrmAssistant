@@ -114,9 +114,31 @@ namespace StrmAssistant.Mod
         {
             var supportedPatches = PatchTrackerList.Where(p => p.IsSupported).ToList();
             
+            // 定义可选功能补丁（这些功能不可用时不应该影响整体状态）
+            var optionalFeatureTypes = new[]
+            {
+                typeof(EnhanceChineseSearch),
+                typeof(PreferOriginalPoster),
+                typeof(SuppressPluginUpdate),
+                typeof(ChineseTvdb),
+                typeof(NoBoxsetsAutoCreation),
+                typeof(EnableImageCapture),
+                typeof(AltMovieDbConfig),
+                typeof(ChineseMovieDb),
+                typeof(EnhanceMovieDbPerson),
+                typeof(EnhanceNfoMetadata),
+                typeof(MovieDbEpisodeGroup)
+            };
+            
+            // 核心功能补丁（这些失败会影响整体状态）
+            var corePatches = supportedPatches.Where(p => !optionalFeatureTypes.Contains(p.PatchType)).ToList();
+            // 可选功能补丁
+            var optionalPatches = supportedPatches.Where(p => optionalFeatureTypes.Contains(p.PatchType)).ToList();
+            
             // 只有真正失败的补丁（FallbackPatchApproach为None）才认为是失败
             // Reflection回退是完全正常和可接受的，功能仍然可用
-            var failedPatches = supportedPatches.Where(p => p.FallbackPatchApproach == PatchApproach.None).ToList();
+            var failedCorePatches = corePatches.Where(p => p.FallbackPatchApproach == PatchApproach.None).ToList();
+            var failedOptionalPatches = optionalPatches.Where(p => p.FallbackPatchApproach == PatchApproach.None).ToList();
             
             // 使用Reflection的补丁（即使默认是Harmony）也应该被视为成功
             var reflectionPatches = supportedPatches.Where(p => 
@@ -124,27 +146,43 @@ namespace StrmAssistant.Mod
                 p.FallbackPatchApproach == PatchApproach.Reflection).ToList();
             
             // 构建状态字符串用于比较，避免重复日志
-            var statusLog = failedPatches.Any() 
-                ? $"Failed:{failedPatches.Count}/{supportedPatches.Count}" + string.Join(",", failedPatches.Select(p => $"{p.PatchType.Name}"))
-                : reflectionPatches.Any()
-                    ? $"Reflection:{reflectionPatches.Count}/{supportedPatches.Count}"
-                    : "AllSuccess";
+            var statusLog = failedCorePatches.Any() 
+                ? $"CoreFailed:{failedCorePatches.Count}/{corePatches.Count}" + string.Join(",", failedCorePatches.Select(p => $"{p.PatchType.Name}"))
+                : failedOptionalPatches.Any()
+                    ? $"OptionalFailed:{failedOptionalPatches.Count}/{optionalPatches.Count}"
+                    : reflectionPatches.Any()
+                        ? $"Reflection:{reflectionPatches.Count}/{supportedPatches.Count}"
+                        : "AllSuccess";
             
             // 只在状态改变或首次调用时记录日志
             if (_lastStatusLog != statusLog)
             {
                 _lastStatusLog = statusLog;
                 
-                if (failedPatches.Any())
+                if (failedCorePatches.Any())
                 {
-                    Plugin.Instance.Logger.Warn($"=== Harmony Mod Status: {failedPatches.Count}/{supportedPatches.Count} patches unavailable ===");
+                    Plugin.Instance.Logger.Error($"=== Harmony Mod Status: {failedCorePatches.Count} core patches unavailable ===");
                     
-                    foreach (var patch in failedPatches)
+                    foreach (var patch in failedCorePatches)
                     {
-                        Plugin.Instance.Logger.Warn($"  ✗ {patch.PatchType.Name} - Feature disabled (required method/plugin not found)");
+                        Plugin.Instance.Logger.Error($"  ✗ {patch.PatchType.Name} - Core feature disabled (required method/plugin not found)");
                     }
                     
-                    Plugin.Instance.Logger.Warn($"Some features are not available. Check logs above for details.");
+                    Plugin.Instance.Logger.Error($"Some core features are not available. Plugin may not function correctly.");
+                }
+                else if (failedOptionalPatches.Any())
+                {
+                    Plugin.Instance.Logger.Info($"=== Harmony Mod Status: Core features working, {failedOptionalPatches.Count} optional features unavailable ===");
+                    
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        foreach (var patch in failedOptionalPatches)
+                        {
+                            Plugin.Instance.Logger.Debug($"  - {patch.PatchType.Name} - Optional feature disabled (plugin/dependency not installed)");
+                        }
+                    }
+                    
+                    Plugin.Instance.Logger.Info("All core features are available. Some optional features may require additional plugins.");
                 }
                 else if (reflectionPatches.Any())
                 {
@@ -164,9 +202,9 @@ namespace StrmAssistant.Mod
                 }
             }
             
-            // 只有在有真正失败的补丁（None）时才返回false
-            // Reflection回退是正常的，不应该被视为失败
-            var result = failedPatches.Count == 0;
+            // 只有核心功能失败时才返回false
+            // 可选功能失败和Reflection回退都不应该被视为失败
+            var result = failedCorePatches.Count == 0;
             _lastModSuccessStatus = result;
             return result;
         }
