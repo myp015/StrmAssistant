@@ -47,13 +47,14 @@ namespace StrmAssistant.Mod
             try
             {
                 HarmonyMod = new Harmony("emby.mod");
+                Plugin.Instance.Logger.Info("Harmony Mod initialized successfully");
             }
             catch (Exception e)
             {
+                Plugin.Instance.Logger.Error("Harmony Init Failed - Harmony mod will not be available");
+                Plugin.Instance.Logger.Error($"Error: {e.Message}");
                 if (Plugin.Instance.DebugMode)
                 {
-                    Plugin.Instance.Logger.Debug("Harmony Init Failed");
-                    Plugin.Instance.Logger.Debug(e.Message);
                     Plugin.Instance.Logger.Debug(e.StackTrace);
                 }
             }
@@ -108,8 +109,31 @@ namespace StrmAssistant.Mod
 
         public static bool IsModSuccess()
         {
-            return PatchTrackerList.Where(p => p.IsSupported)
-                .All(p => p.FallbackPatchApproach == p.DefaultPatchApproach);
+            var supportedPatches = PatchTrackerList.Where(p => p.IsSupported).ToList();
+            var failedPatches = supportedPatches.Where(p => p.FallbackPatchApproach != p.DefaultPatchApproach).ToList();
+            
+            if (failedPatches.Any())
+            {
+                Plugin.Instance.Logger.Warn($"=== Harmony Mod Status: {failedPatches.Count}/{supportedPatches.Count} patches failed ===");
+                foreach (var failedPatch in failedPatches)
+                {
+                    var expectedApproach = failedPatch.DefaultPatchApproach;
+                    var actualApproach = failedPatch.FallbackPatchApproach;
+                    Plugin.Instance.Logger.Warn($"  - {failedPatch.PatchType.Name}: Expected {expectedApproach}, but using {actualApproach}");
+                    
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        Plugin.Instance.Logger.Debug($"    Patch details: IsSupported={failedPatch.IsSupported}, DefaultPatchApproach={expectedApproach}");
+                    }
+                }
+                Plugin.Instance.Logger.Warn("Some Harmony patches failed. Check logs above for details. Plugin will continue with fallback methods.");
+            }
+            else if (supportedPatches.Any())
+            {
+                Plugin.Instance.Logger.Info($"Harmony Mod: All {supportedPatches.Count} patches initialized successfully");
+            }
+            
+            return failedPatches.Count == 0;
         }
 
         public static void CopyProperty(object source, object target, string propertyName)
@@ -124,41 +148,45 @@ namespace StrmAssistant.Mod
 
             if (targetMethod is null)
             {
-                Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} Init Failed");
+                Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} ReversePatch Failed: Target method is null");
                 tracker.FallbackPatchApproach = PatchApproach.None;
                 return false;
             }
 
             var stubMethod = GetHarmonyMethod(tracker.PatchType, stub);
 
-            if (stubMethod != null)
+            if (stubMethod == null)
             {
-                try
+                Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} ReversePatch Failed: Stub method '{stub}' not found");
+                tracker.FallbackPatchApproach = PatchApproach.Reflection;
+                return false;
+            }
+
+            try
+            {
+                HarmonyMod.CreateReversePatcher(targetMethod, stubMethod).Patch();
+
+                if (Plugin.Instance.DebugMode)
                 {
-                    HarmonyMod.CreateReversePatcher(targetMethod, stubMethod).Patch();
-
-                    if (Plugin.Instance.DebugMode)
-                    {
-                        Plugin.Instance.Logger.Debug(
-                            $"{nameof(ReversePatch)} {(targetMethod.DeclaringType != null ? targetMethod.DeclaringType.Name + "." : string.Empty)}{targetMethod.Name} for {tracker.PatchType.Name} Success");
-                    }
-
-                    return true;
+                    Plugin.Instance.Logger.Debug(
+                        $"{nameof(ReversePatch)} {(targetMethod.DeclaringType != null ? targetMethod.DeclaringType.Name + "." : string.Empty)}{targetMethod.Name} for {tracker.PatchType.Name} Success");
                 }
-                catch (Exception he)
+
+                return true;
+            }
+            catch (Exception he)
+            {
+                Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} ReversePatch Failed: {he.Message}");
+                if (Plugin.Instance.DebugMode)
                 {
-                    if (Plugin.Instance.DebugMode)
-                    {
-                        Plugin.Instance.Logger.Debug(
-                            $"{nameof(ReversePatch)} {targetMethod.Name} for {tracker.PatchType.Name} Failed");
-                        Plugin.Instance.Logger.Debug(he.Message);
-                        Plugin.Instance.Logger.Debug(he.StackTrace);
-                    }
-
-                    tracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-                    Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} Init Failed");
+                    Plugin.Instance.Logger.Debug($"Target method: {(targetMethod.DeclaringType != null ? targetMethod.DeclaringType.Name + "." : string.Empty)}{targetMethod.Name}");
+                    Plugin.Instance.Logger.Debug($"Stub method: {stubMethod.method.Name}");
+                    Plugin.Instance.Logger.Debug($"Exception type: {he.GetType().Name}");
+                    Plugin.Instance.Logger.Debug(he.StackTrace);
                 }
+
+                tracker.FallbackPatchApproach = PatchApproach.Reflection;
+                Plugin.Instance.Logger.Info($"{tracker.PatchType.Name} will use Reflection approach as fallback");
             }
 
             return false;
@@ -171,7 +199,14 @@ namespace StrmAssistant.Mod
 
             if (targetMethod is null)
             {
-                Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} Init Failed");
+                Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} PatchUnpatch Failed: Target method is null");
+                tracker.FallbackPatchApproach = PatchApproach.None;
+                return false;
+            }
+
+            if (HarmonyMod == null)
+            {
+                Plugin.Instance.Logger.Error($"{tracker.PatchType.Name} PatchUnpatch Failed: HarmonyMod is not initialized");
                 tracker.FallbackPatchApproach = PatchApproach.None;
                 return false;
             }
@@ -215,14 +250,18 @@ namespace StrmAssistant.Mod
             }
             catch (Exception he)
             {
+                Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} {action} Failed: {he.Message}");
+                Plugin.Instance.Logger.Warn($"Target: {(targetMethod.DeclaringType != null ? targetMethod.DeclaringType.Name + "." : string.Empty)}{targetMethod.Name}");
+                
                 if (Plugin.Instance.DebugMode)
                 {
-                    Plugin.Instance.Logger.Debug($"{action} {targetMethod.Name} for {tracker.PatchType.Name} Failed");
-                    Plugin.Instance.Logger.Debug(he.Message);
+                    Plugin.Instance.Logger.Debug($"Exception type: {he.GetType().Name}");
+                    Plugin.Instance.Logger.Debug($"Prefix: {prefix}, Postfix: {postfix}, Transpiler: {transpiler}, Finalizer: {finalizer}");
                     Plugin.Instance.Logger.Debug(he.StackTrace);
                 }
 
                 tracker.FallbackPatchApproach = PatchApproach.Reflection;
+                Plugin.Instance.Logger.Info($"{tracker.PatchType.Name} will use Reflection approach as fallback");
             }
 
             return false;

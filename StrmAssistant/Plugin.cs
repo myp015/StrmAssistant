@@ -128,7 +128,26 @@ namespace StrmAssistant
                 DebugMode = true;
             }
 
-            if (IsModSupported) PatchManager.Initialize();
+            if (IsModSupported)
+            {
+                Logger.Info("Initializing Harmony Mod patches...");
+                PatchManager.Initialize();
+                
+                // 检查补丁状态并记录详细信息
+                var modSuccess = PatchManager.IsModSuccess();
+                if (!modSuccess)
+                {
+                    Logger.Warn("Harmony Mod initialization completed with some failures. Check logs above for details.");
+                }
+                else
+                {
+                    Logger.Info("Harmony Mod initialization completed successfully.");
+                }
+            }
+            else
+            {
+                Logger.Info("Harmony Mod is not supported in this environment. Using reflection-based approach.");
+            }
 
             LibraryApi = new LibraryApi(libraryManager, providerManager, fileSystem, mediaMountManager, userManager);
             MediaInfoApi = new MediaInfoApi(libraryManager, fileSystem, providerManager, mediaSourceManager,
