@@ -29,6 +29,7 @@ namespace StrmAssistant.Mod
         private static MethodInfo _getJoinCommandText;
         private static MethodInfo _createSearchTerm;
         private static MethodInfo _cacheIdsFromTextParams;
+        private static bool _getJoinCommandTextReturnsStringBuilder;
 
         public static string CurrentTokenizerName { get; private set; } = "unknown";
 
@@ -125,23 +126,33 @@ namespace StrmAssistant.Mod
                     if (sqliteItemRepository != null)
                     {
                         // 处理 GetJoinCommandText 可能的重载
-                        var getJoinCommandTextMethods = sqliteItemRepository.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                            .Where(m => m.Name == "GetJoinCommandText")
-                            .ToArray();
-                        
-                        if (getJoinCommandTextMethods.Length == 1)
+                        var sqliteItemRepositoryType = sqliteItemRepository;
+                        _getJoinCommandText = EmbyVersionCompatibility.FindCompatibleMethod(
+                            sqliteItemRepositoryType, 
+                            "GetJoinCommandText", 
+                            BindingFlags.NonPublic | BindingFlags.Instance,
+                            // Emby 4.9.1.x 及以上版本，移除了 itemLinks2TableQualifier 参数
+                            new[] { typeof(MediaBrowser.Controller.Entities.InternalItemsQuery), typeof(List<KeyValuePair<string, string>>), typeof(string), typeof(bool) },
+                            // Emby 4.9.0.x 版本
+                            new[] { typeof(MediaBrowser.Controller.Entities.InternalItemsQuery), typeof(List<KeyValuePair<string, string>>), typeof(string), typeof(string), typeof(bool) }
+                        );
+
+                        if (_getJoinCommandText != null)
                         {
-                            _getJoinCommandText = getJoinCommandTextMethods[0];
-                        }
-                        else if (getJoinCommandTextMethods.Length > 1)
-                        {
-                            // 选择参数最多的版本（通常是最新的）
-                            _getJoinCommandText = getJoinCommandTextMethods.OrderByDescending(m => m.GetParameters().Length).First();
-                            
                             if (Plugin.Instance.DebugMode)
                             {
                                 var paramCount = _getJoinCommandText.GetParameters().Length;
                                 Plugin.Instance.Logger.Debug($"EnhanceChineseSearch: Selected GetJoinCommandText with {paramCount} parameters");
+                            }
+
+                            // 检查返回类型
+                            var returnType = _getJoinCommandText.ReturnType;
+                            _getJoinCommandTextReturnsStringBuilder = returnType.Name == "StringBuilder" ||
+                                returnType.FullName == "System.Text.StringBuilder";
+                            
+                            if (Plugin.Instance.DebugMode)
+                            {
+                                Plugin.Instance.Logger.Debug($"EnhanceChineseSearch: GetJoinCommandText returns {returnType.Name}");
                             }
                         }
                         
@@ -302,17 +313,41 @@ namespace StrmAssistant.Mod
             }
             catch (Exception e)
             {
+                // 记录错误信息，但只在 Debug 模式下记录详细堆栈
+                Plugin.Instance.Logger.Warn($"EnhanceChineseSearch - PatchPhase2 Failed: {e.Message}");
                 if (Plugin.Instance.DebugMode)
                 {
-                    Plugin.Instance.Logger.Debug("EnhanceChineseSearch - PatchPhase2 Failed");
-                    Plugin.Instance.Logger.Debug(e.Message);
+                    Plugin.Instance.Logger.Debug($"Exception type: {e.GetType().Name}");
                     Plugin.Instance.Logger.Debug(e.StackTrace);
+                    if (e.InnerException != null)
+                    {
+                        Plugin.Instance.Logger.Debug($"Inner exception: {e.InnerException.GetType().Name}: {e.InnerException.Message}");
+                    }
                 }
             }
 
-            if (!patchSearchFunctionsResult || !rebuildFtsResult ||
-                string.Equals(CurrentTokenizerName, "unknown", StringComparison.Ordinal))
+            // 只有在真正失败时才重置选项
+            // 如果 patch 失败但 tokenizer 已经是 simple，说明之前已经成功启用过，不应该重置
+            // 只有在 tokenizer 仍然是 unicode61 且 patch 失败时，才认为是真正的失败
+            if (!patchSearchFunctionsResult)
             {
+                if (string.Equals(CurrentTokenizerName, "unicode61 remove_diacritics 2", StringComparison.Ordinal))
+                {
+                    // Patch 失败且 tokenizer 未切换，说明功能无法启用
+                    Plugin.Instance.Logger.Warn("EnhanceChineseSearch: Patch failed and tokenizer not switched, resetting options");
+                    ResetOptions();
+                }
+                else if (string.Equals(CurrentTokenizerName, "simple", StringComparison.Ordinal))
+                {
+                    // Tokenizer 已经是 simple，说明之前已经成功启用过
+                    // 即使 patch 失败（可能因为使用 Reflection），功能仍然可用
+                    Plugin.Instance.Logger.Info("EnhanceChineseSearch: Patch failed but tokenizer is already 'simple', keeping options enabled");
+                }
+            }
+            else if (!rebuildFtsResult || string.Equals(CurrentTokenizerName, "unknown", StringComparison.Ordinal))
+            {
+                // Patch 成功但重建 FTS 失败，或者 tokenizer 状态未知
+                Plugin.Instance.Logger.Warn("EnhanceChineseSearch: Patch succeeded but FTS rebuild failed or tokenizer unknown, resetting options");
                 ResetOptions();
             }
         }
@@ -366,11 +401,16 @@ namespace StrmAssistant.Mod
             {
                 connection.RollbackTransaction();
 
+                // 记录错误信息，但只在 Debug 模式下记录详细堆栈
+                Plugin.Instance.Logger.Warn($"EnhanceChineseSearch - RebuildFts Failed: {e.Message}");
                 if (Plugin.Instance.DebugMode)
                 {
-                    Plugin.Instance.Logger.Debug("EnhanceChineseSearch - RebuildFts Failed");
-                    Plugin.Instance.Logger.Debug(e.Message);
+                    Plugin.Instance.Logger.Debug($"Exception type: {e.GetType().Name}");
                     Plugin.Instance.Logger.Debug(e.StackTrace);
+                    if (e.InnerException != null)
+                    {
+                        Plugin.Instance.Logger.Debug($"Inner exception: {e.InnerException.GetType().Name}: {e.InnerException.Message}");
+                    }
                 }
             }
 
@@ -429,11 +469,16 @@ namespace StrmAssistant.Mod
             }
             catch (Exception e)
             {
+                // 记录错误信息，但只在 Debug 模式下记录详细堆栈
+                Plugin.Instance.Logger.Warn($"EnhanceChineseSearch - EnsureTokenizerExists Failed: {e.Message}");
                 if (Plugin.Instance.DebugMode)
                 {
-                    Plugin.Instance.Logger.Debug("EnhanceChineseSearch - EnsureTokenizerExists Failed");
-                    Plugin.Instance.Logger.Debug(e.Message);
+                    Plugin.Instance.Logger.Debug($"Exception type: {e.GetType().Name}");
                     Plugin.Instance.Logger.Debug(e.StackTrace);
+                    if (e.InnerException != null)
+                    {
+                        Plugin.Instance.Logger.Debug($"Inner exception: {e.InnerException.GetType().Name}: {e.InnerException.Message}");
+                    }
                 }
             }
 
@@ -509,8 +554,13 @@ namespace StrmAssistant.Mod
 
         private static bool PatchSearchFunctions()
         {
+            // 根据返回类型选择正确的 Postfix 方法
+            string getJoinCommandTextPostfix = _getJoinCommandTextReturnsStringBuilder 
+                ? nameof(GetJoinCommandTextPostfixStringBuilder) 
+                : nameof(GetJoinCommandTextPostfix);
+            
             return PatchUnpatch(Instance.PatchTracker, true, _getJoinCommandText,
-                       postfix: nameof(GetJoinCommandTextPostfix)) &&
+                       postfix: getJoinCommandTextPostfix) &&
                    PatchUnpatch(Instance.PatchTracker, true, _createSearchTerm,
                        prefix: nameof(CreateSearchTermPrefix)) &&
                    PatchUnpatch(Instance.PatchTracker, true,
@@ -521,8 +571,44 @@ namespace StrmAssistant.Mod
         {
             try
             {
+                // 检查必需的组件是否存在
+                if (sqlite3_db == null)
+                {
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        Plugin.Instance.Logger.Debug("EnhanceChineseSearch: sqlite3_db field not found, cannot load tokenizer");
+                    }
+                    return false;
+                }
+                
+                if (sqlite3_enable_load_extension == null || raw == null)
+                {
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        Plugin.Instance.Logger.Debug("EnhanceChineseSearch: sqlite3_enable_load_extension method or raw type not found, cannot load tokenizer");
+                    }
+                    return false;
+                }
+                
+                if (string.IsNullOrEmpty(_tokenizerPath) || !File.Exists(_tokenizerPath))
+                {
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        Plugin.Instance.Logger.Debug($"EnhanceChineseSearch: Tokenizer file not found at {_tokenizerPath}");
+                    }
+                    return false;
+                }
 
                 var db = sqlite3_db.GetValue(connection);
+                if (db == null)
+                {
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        Plugin.Instance.Logger.Debug("EnhanceChineseSearch: Could not get SQLite database handle from connection");
+                    }
+                    return false;
+                }
+                
                 sqlite3_enable_load_extension.Invoke(raw, new[] { db, 1 });
                 connection.Execute("SELECT load_extension('" + _tokenizerPath + "')");
 
@@ -536,33 +622,112 @@ namespace StrmAssistant.Mod
                     Plugin.Instance.Logger.Debug(e.Message);
                     Plugin.Instance.Logger.Debug(e.StackTrace);
                 }
+                else
+                {
+                    Plugin.Instance.Logger.Warn($"EnhanceChineseSearch - Load tokenizer failed: {e.Message}");
+                }
             }
 
             return false;
         }
 
         [HarmonyPostfix]
-        private static void CreateConnectionPostfix(object __instance, bool isReadOnly,
-            ref IDatabaseConnection __result)
+        private static void CreateConnectionPostfix(object __instance, ref IDatabaseConnection __result)
         {
-            if (!isReadOnly && !_patchPhase2Initialized)
+            // 不再依赖 isReadOnly 参数,因为某些 Emby 版本的 CreateConnection 方法没有此参数
+            // 直接检查是否已初始化和数据库文件路径
+            if (!_patchPhase2Initialized)
             {
                 lock (_lock)
                 {
                     if (!_patchPhase2Initialized)
                     {
-                        var db = _dbFilePath.GetValue(__instance) as string;
-                        if (db?.EndsWith("library.db", StringComparison.OrdinalIgnoreCase) != true)
+                        try
                         {
-                            return;
+                            // 尝试获取数据库文件路径，如果属性不存在则尝试其他方式
+                            string db = null;
+                            
+                            if (_dbFilePath != null)
+                            {
+                                db = _dbFilePath.GetValue(__instance) as string;
+                            }
+                            else
+                            {
+                                // 如果 DbFilePath 属性不存在，尝试通过反射查找其他可能的属性或字段
+                                var instanceType = __instance.GetType();
+                                
+                                // 尝试查找 DbFilePath 属性（可能名称不同）
+                                var dbFilePathProp = instanceType.GetProperty("DbFilePath", 
+                                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                                if (dbFilePathProp != null)
+                                {
+                                    db = dbFilePathProp.GetValue(__instance) as string;
+                                }
+                                else
+                                {
+                                    // 尝试查找 _dbFilePath 字段
+                                    var dbFilePathField = instanceType.GetField("_dbFilePath", 
+                                        BindingFlags.NonPublic | BindingFlags.Instance);
+                                    if (dbFilePathField != null)
+                                    {
+                                        db = dbFilePathField.GetValue(__instance) as string;
+                                    }
+                                    else
+                                    {
+                                        // 尝试查找 dbFilePath 字段（小写开头）
+                                        dbFilePathField = instanceType.GetField("dbFilePath", 
+                                            BindingFlags.NonPublic | BindingFlags.Instance);
+                                        if (dbFilePathField != null)
+                                        {
+                                            db = dbFilePathField.GetValue(__instance) as string;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // 如果无法获取路径，或者路径不是 library.db，则跳过
+                            // 在新版本中，如果无法确定路径，我们仍然尝试加载 tokenizer
+                            // 因为可能只有 library.db 会调用 CreateConnection
+                            if (db != null && !db.EndsWith("library.db", StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (Plugin.Instance.DebugMode)
+                                {
+                                    Plugin.Instance.Logger.Debug($"EnhanceChineseSearch: Skipping non-library database: {db}");
+                                }
+                                return;
+                            }
+                            
+                            // 如果 db 为 null，可能是新版本中路径获取方式改变了
+                            // 在这种情况下，我们仍然尝试加载，但记录警告
+                            if (db == null && Plugin.Instance.DebugMode)
+                            {
+                                Plugin.Instance.Logger.Debug("EnhanceChineseSearch: Could not determine database path, attempting to load tokenizer anyway");
+                            }
+
+                            var tokenizerLoaded = LoadTokenizerExtension(__result);
+
+                            if (tokenizerLoaded)
+                            {
+                                _patchPhase2Initialized = true;
+                                PatchPhase2(__result);
+                            }
                         }
-
-                        var tokenizerLoaded = LoadTokenizerExtension(__result);
-
-                        if (tokenizerLoaded)
+                        catch (Exception ex)
                         {
-                            _patchPhase2Initialized = true;
-                            PatchPhase2(__result);
+                            // 捕获所有异常，避免影响正常的数据库连接创建
+                            // 只在 Debug 模式下记录详细错误，避免日志噪音
+                            if (Plugin.Instance.DebugMode)
+                            {
+                                Plugin.Instance.Logger.Debug($"EnhanceChineseSearch: CreateConnectionPostfix error: {ex.Message}");
+                                Plugin.Instance.Logger.Debug($"Exception type: {ex.GetType().Name}");
+                                Plugin.Instance.Logger.Debug(ex.StackTrace);
+                                if (ex.InnerException != null)
+                                {
+                                    Plugin.Instance.Logger.Debug($"Inner exception: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+                                }
+                            }
+                            // 对于非关键错误，不记录警告，避免日志噪音
+                            // 只有在真正影响功能时才记录警告
                         }
                     }
                 }
@@ -571,7 +736,8 @@ namespace StrmAssistant.Mod
 
         [HarmonyPostfix]
         private static void GetJoinCommandTextPostfix(InternalItemsQuery query,
-            List<KeyValuePair<string, string>> bindParams, string mediaItemsTableQualifier, ref string __result)
+            List<KeyValuePair<string, string>> bindParams, string mediaItemsTableQualifier, 
+            bool allowJoinOnItemLinks, ref string __result)
         {
             if (!string.IsNullOrEmpty(query.SearchTerm) && __result.Contains("match @SearchTerm"))
             {
@@ -608,6 +774,63 @@ namespace StrmAssistant.Mod
                         bindParams[i] = new KeyValuePair<string, string>(kvp.Key, currentValue);
                     }
                 }
+            }
+        }
+
+        [HarmonyPostfix]
+        private static void GetJoinCommandTextPostfixStringBuilder(InternalItemsQuery query,
+            List<KeyValuePair<string, string>> bindParams, string mediaItemsTableQualifier,
+            bool allowJoinOnItemLinks, System.Text.StringBuilder __result)
+        {
+            if (__result == null) return;
+            
+            var resultString = __result.ToString();
+            var modified = false;
+
+            if (!string.IsNullOrEmpty(query.SearchTerm) && resultString.Contains("match @SearchTerm"))
+            {
+                if (!Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.ExcludeOriginalTitleFromSearch)
+                {
+                    resultString = resultString.Replace("match @SearchTerm", "match simple_query(@SearchTerm)");
+                    modified = true;
+                }
+                else
+                {
+                    resultString = resultString.Replace("match @SearchTerm", "match '-OriginalTitle:' || simple_query(@SearchTerm)");
+                    modified = true;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(query.Name) && resultString.Contains("match @SearchTerm"))
+            {
+                resultString = resultString.Replace("match @SearchTerm", "match 'Name:' || simple_query(@SearchTerm)");
+                modified = true;
+
+                for (var i = 0; i < bindParams.Count; i++)
+                {
+                    var kvp = bindParams[i];
+                    if (kvp.Key == "@SearchTerm")
+                    {
+                        var currentValue = kvp.Value;
+
+                        if (currentValue.StartsWith("Name:", StringComparison.Ordinal))
+                        {
+                            currentValue = currentValue
+                                .Substring(currentValue.IndexOf(":", StringComparison.Ordinal) + 1)
+                                .Trim('\"', '^', '$')
+                                .Replace(".", string.Empty)
+                                .Replace("'", string.Empty);
+                        }
+
+                        bindParams[i] = new KeyValuePair<string, string>(kvp.Key, currentValue);
+                    }
+                }
+            }
+
+            if (modified)
+            {
+                __result.Clear();
+                __result.Append(resultString);
             }
         }
 

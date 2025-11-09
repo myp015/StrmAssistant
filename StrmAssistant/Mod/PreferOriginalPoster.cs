@@ -133,11 +133,17 @@ namespace StrmAssistant.Mod
                     {
                         typeof(FileSystemMetadata[]), typeof(List<LocalImageInfo>), typeof(string), typeof(ImageType)
                     });
-                ReversePatch(PatchTracker, _addLocalImage, nameof(AddLocalImageStub));
+                if (_addLocalImage != null)
+                {
+                    ReversePatch(PatchTracker, _addLocalImage, nameof(AddLocalImageStub), suppressWarnings: false);
+                }
                 _getLocalFiles = localImageProvider.GetMethod("GetFiles",
                     BindingFlags.Instance | BindingFlags.NonPublic,
                     new[] { typeof(BaseItem), typeof(LibraryOptions), typeof(bool), typeof(IDirectoryService) });
-                ReversePatch(PatchTracker, _getLocalFiles, nameof(GetLocalFilesStub));
+                if (_getLocalFiles != null)
+                {
+                    ReversePatch(PatchTracker, _getLocalFiles, nameof(GetLocalFilesStub), suppressWarnings: false);
+                }
                 _populateSeasonImagesFromSeasonOrSeriesFolder = localImageProvider
                     .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
                     .FirstOrDefault(m => m.Name.StartsWith("PopulateSeasonImagesFrom"));

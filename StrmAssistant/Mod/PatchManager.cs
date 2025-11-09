@@ -223,9 +223,29 @@ namespace StrmAssistant.Mod
             {
                 if (!suppressWarnings)
                 {
-                    Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} ReversePatch Failed: Target method is null");
+                    // 对于可选功能，使用 Debug 级别而不是 Warn
+                    if (tracker.PatchType == typeof(PreferOriginalPoster) || 
+                        tracker.PatchType == typeof(ChineseTvdb) ||
+                        tracker.PatchType == typeof(ChineseMovieDb))
+                    {
+                        if (Plugin.Instance.DebugMode)
+                        {
+                            Plugin.Instance.Logger.Debug($"{tracker.PatchType.Name} ReversePatch: Target method is null (optional feature, may require additional plugins)");
+                        }
+                    }
+                    else
+                    {
+                        Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} ReversePatch Failed: Target method is null");
+                    }
                 }
-                tracker.FallbackPatchApproach = PatchApproach.None;
+                // 对于可选功能，不应该将 FallbackPatchApproach 设置为 None
+                // 因为即使 ReversePatch 失败，功能可能仍然可用（通过 Reflection）
+                if (tracker.PatchType != typeof(PreferOriginalPoster) && 
+                    tracker.PatchType != typeof(ChineseTvdb) &&
+                    tracker.PatchType != typeof(ChineseMovieDb))
+                {
+                    tracker.FallbackPatchApproach = PatchApproach.None;
+                }
                 return false;
             }
 
@@ -393,7 +413,19 @@ namespace StrmAssistant.Mod
                 // 检测常见错误类型并提供更好的诊断信息
                 bool canFallbackToReflection = true;
                 
-                if (he is ArgumentException && he.Message.Contains("Method") && he.Message.Contains("not found"))
+                // 检测参数不匹配的情况 - 这通常是由于 Emby 版本差异导致的
+                if (he.Message.Contains("Parameter") && he.Message.Contains("not found"))
+                {
+                    // 对于参数不匹配,我们应该尝试用更宽松的方式 patch
+                    // 而不是直接失败或回退到反射
+                    Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} {action} Failed: {he.Message}");
+                    Plugin.Instance.Logger.Warn($"  Target: {methodName}");
+                    
+                    // 参数不匹配通常意味着目标方法签名与 patch 方法签名不一致
+                    // 这种情况下反射也帮不上忙,应该标记为 None
+                    canFallbackToReflection = false;
+                }
+                else if (he is ArgumentException && he.Message.Contains("Method") && he.Message.Contains("not found"))
                 {
                     Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} {action} Failed: Target method not found");
                     Plugin.Instance.Logger.Warn($"  Method: {methodName}");
