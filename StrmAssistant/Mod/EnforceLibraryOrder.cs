@@ -1,9 +1,8 @@
 using HarmonyLib;
 using MediaBrowser.Controller.Entities;
-using MediaBrowser.Controller.Library;
-using MediaBrowser.Model.Library;
 using StrmAssistant.Common;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using static StrmAssistant.Mod.PatchManager;
@@ -13,7 +12,6 @@ namespace StrmAssistant.Mod
     public class EnforceLibraryOrder : PatchBase<EnforceLibraryOrder>
     {
         private static MethodInfo _getUserViews;
-        private static IUserManager _userManager;
 
         public EnforceLibraryOrder()
         {
@@ -33,45 +31,52 @@ namespace StrmAssistant.Mod
             _getUserViews = userViewManager.GetMethods(BindingFlags.Instance | BindingFlags.Public)
                 .FirstOrDefault(m => m.Name == "GetUserViews" &&
                                      (m.GetParameters().Length == 3 || m.GetParameters().Length == 4));
-            
-            // 获取 UserManager 以便在 Prefix 中使用
-            _userManager = Plugin.Instance.ApplicationHost.Resolve<IUserManager>();
         }
 
         protected override void Prepare(bool apply)
         {
-            PatchUnpatch(PatchTracker, apply, _getUserViews, nameof(GetUserViewsPrefix));
+            PatchUnpatch(PatchTracker, apply, _getUserViews, postfix: nameof(GetUserViewsPostfix));
         }
 
-        [HarmonyPrefix]
-        private static bool GetUserViewsPrefix(UserViewQuery query)
+        [HarmonyPostfix]
+        private static void GetUserViewsPostfix(ref Folder[] __result)
         {
             try
             {
-                // 从 query 中获取 UserId
-                var userIdProperty = query.GetType().GetProperty("UserId");
-                if (userIdProperty != null)
+                if (__result == null || __result.Length == 0 || LibraryApi.AdminOrderedViews == null ||
+                    LibraryApi.AdminOrderedViews.Length == 0)
                 {
-                    var userId = userIdProperty.GetValue(query) as string;
-                    if (!string.IsNullOrEmpty(userId) && _userManager != null)
+                    return;
+                }
+
+                // 根据 AdminOrderedViews 对 Folder 数组进行排序
+                var orderedViews = LibraryApi.AdminOrderedViews;
+                var sortedList = new List<Folder>();
+                var remainingFolders = __result.ToList();
+
+                // 先按照 AdminOrderedViews 的顺序添加
+                foreach (var orderedViewId in orderedViews)
+                {
+                    var folder = remainingFolders.FirstOrDefault(f => f.Id.ToString("N") == orderedViewId);
+                    if (folder != null)
                     {
-                        var user = _userManager.GetUserById(userId);
-                        if (user != null)
-                        {
-                            user.Configuration.OrderedViews = LibraryApi.AdminOrderedViews;
-                        }
+                        sortedList.Add(folder);
+                        remainingFolders.Remove(folder);
                     }
                 }
+
+                // 将剩余未排序的文件夹添加到末尾
+                sortedList.AddRange(remainingFolders);
+
+                __result = sortedList.ToArray();
             }
             catch (Exception ex)
             {
                 if (Plugin.Instance.DebugMode)
                 {
-                    Plugin.Instance.Logger.Debug($"EnforceLibraryOrder GetUserViewsPrefix error: {ex.Message}");
+                    Plugin.Instance.Logger.Debug($"EnforceLibraryOrder GetUserViewsPostfix error: {ex.Message}");
                 }
             }
-
-            return true;
         }
     }
 }
