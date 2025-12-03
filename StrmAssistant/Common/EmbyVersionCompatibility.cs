@@ -2,13 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using StrmAssistant.Core;
 
 namespace StrmAssistant.Common
 {
     /// <summary>
-    /// Emby版本兼容性检测工具类
-    /// 用于检测当前Emby版本与插件功能的兼容性
+    /// Emby版本兼容性检测工具类（兼容性包装器）
+    /// 注意：此类已被EmbyVersionAdapter取代，保留仅为向后兼容
+    /// 建议使用 StrmAssistant.Core.EmbyVersionAdapter 代替
     /// </summary>
+    [Obsolete("使用 StrmAssistant.Core.EmbyVersionAdapter 代替")]
     public static class EmbyVersionCompatibility
     {
         // 已知的Emby版本里程碑
@@ -17,20 +20,12 @@ namespace StrmAssistant.Common
         public static readonly Version Version4900 = new Version("4.9.0.0");
         public static readonly Version Version4910 = new Version("4.9.1.0");
         public static readonly Version Version49180 = new Version("4.9.1.80");
+        public static readonly Version Version49190 = new Version("4.9.1.90");
         
-        private static Version _currentVersion;
-        
-        public static Version CurrentVersion
-        {
-            get
-            {
-                if (_currentVersion == null)
-                {
-                    _currentVersion = Plugin.Instance.ApplicationHost.ApplicationVersion;
-                }
-                return _currentVersion;
-            }
-        }
+        /// <summary>
+        /// 当前版本（兼容性包装）
+        /// </summary>
+        public static Version CurrentVersion => EmbyVersionAdapter.Instance.CurrentVersion;
 
         /// <summary>
         /// 检查方法签名是否匹配
@@ -54,94 +49,22 @@ namespace StrmAssistant.Common
         }
 
         /// <summary>
-        /// 尝试查找兼容的方法重载
+        /// 尝试查找兼容的方法重载（委托到EmbyVersionAdapter）
         /// 支持多个版本的方法签名
         /// </summary>
         public static MethodInfo FindCompatibleMethod(Type type, string methodName, 
             BindingFlags bindingFlags, params Type[][] parameterTypeVariants)
         {
-            if (type == null || string.IsNullOrEmpty(methodName))
-                return null;
-
-            foreach (var parameterTypes in parameterTypeVariants)
-            {
-                try
-                {
-                    var method = type.GetMethod(methodName, bindingFlags, null, parameterTypes, null);
-                    if (method != null)
-                    {
-                        if (Plugin.Instance.DebugMode)
-                        {
-                            Plugin.Instance.Logger.Debug(
-                                $"Found compatible method: {type.Name}.{methodName} with {parameterTypes.Length} parameters");
-                        }
-                        return method;
-                    }
-                }
-                catch (AmbiguousMatchException)
-                {
-                    // 如果有歧义，尝试更精确的匹配
-                    var methods = type.GetMethods(bindingFlags)
-                        .Where(m => m.Name == methodName && CheckMethodSignature(m, parameterTypes))
-                        .ToArray();
-                    
-                    if (methods.Length == 1)
-                    {
-                        return methods[0];
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (Plugin.Instance.DebugMode)
-                    {
-                        Plugin.Instance.Logger.Debug($"Method lookup failed for {methodName}: {ex.Message}");
-                    }
-                }
-            }
-
-            return null;
+            return EmbyVersionAdapter.Instance.FindCompatibleMethod(type, methodName, bindingFlags, parameterTypeVariants);
         }
 
         /// <summary>
-        /// 获取方法的安全调用包装器
+        /// 获取方法的安全调用包装器（委托到EmbyVersionAdapter）
         /// 提供异常处理和日志记录
         /// </summary>
         public static Func<object, object[], object> CreateSafeMethodInvoker(MethodInfo method, string contextName)
         {
-            if (method == null)
-            {
-                Plugin.Instance.Logger.Warn($"Cannot create invoker for null method in {contextName}");
-                return null;
-            }
-
-            return (instance, args) =>
-            {
-                try
-                {
-                    return method.Invoke(instance, args);
-                }
-                catch (TargetInvocationException tie)
-                {
-                    var innerEx = tie.InnerException ?? tie;
-                    Plugin.Instance.Logger.Error($"Method invocation failed in {contextName}: {innerEx.Message}");
-                    if (Plugin.Instance.DebugMode)
-                    {
-                        Plugin.Instance.Logger.Debug($"Method: {method.DeclaringType?.Name}.{method.Name}");
-                        Plugin.Instance.Logger.Debug($"Arguments: {string.Join(", ", args?.Select(a => a?.GetType().Name ?? "null") ?? new[] { "none" })}");
-                        Plugin.Instance.Logger.Debug(innerEx.StackTrace);
-                    }
-                    throw innerEx;
-                }
-                catch (Exception ex)
-                {
-                    Plugin.Instance.Logger.Error($"Unexpected error in {contextName}: {ex.Message}");
-                    if (Plugin.Instance.DebugMode)
-                    {
-                        Plugin.Instance.Logger.Debug(ex.StackTrace);
-                    }
-                    throw;
-                }
-            };
+            return EmbyVersionAdapter.Instance.CreateSafeMethodInvoker(method, contextName);
         }
 
         /// <summary>
@@ -232,71 +155,27 @@ namespace StrmAssistant.Common
         }
 
         /// <summary>
-        /// 记录版本兼容性诊断信息
+        /// 记录版本兼容性诊断信息（委托到EmbyVersionAdapter）
         /// </summary>
         public static void LogCompatibilityInfo(string componentName, bool isCompatible, string details = null)
         {
-            var status = isCompatible ? "✓ Compatible" : "✗ Incompatible";
-            var message = $"[{componentName}] {status} with Emby {CurrentVersion}";
-            
-            if (!string.IsNullOrEmpty(details))
-            {
-                message += $" - {details}";
-            }
-
-            if (isCompatible)
-            {
-                if (Plugin.Instance.DebugMode)
-                {
-                    Plugin.Instance.Logger.Debug(message);
-                }
-            }
-            else
-            {
-                Plugin.Instance.Logger.Warn(message);
-            }
+            EmbyVersionAdapter.Instance.LogCompatibilityInfo(componentName, isCompatible, details);
         }
 
         /// <summary>
-        /// 尝试加载程序集
+        /// 尝试加载程序集（委托到EmbyVersionAdapter）
         /// </summary>
         public static Assembly TryLoadAssembly(string assemblyName)
         {
-            try
-            {
-                return Assembly.Load(assemblyName);
-            }
-            catch (Exception ex)
-            {
-                Plugin.Instance.Logger.Warn($"Failed to load assembly '{assemblyName}': {ex.Message}");
-                if (Plugin.Instance.DebugMode)
-                {
-                    Plugin.Instance.Logger.Debug(ex.StackTrace);
-                }
-                return null;
-            }
+            return EmbyVersionAdapter.Instance.TryLoadAssembly(assemblyName);
         }
 
         /// <summary>
-        /// 尝试获取类型
+        /// 尝试获取类型（委托到EmbyVersionAdapter）
         /// </summary>
         public static Type TryGetType(Assembly assembly, string typeName)
         {
-            if (assembly == null) return null;
-
-            try
-            {
-                return assembly.GetType(typeName);
-            }
-            catch (Exception ex)
-            {
-                Plugin.Instance.Logger.Warn($"Failed to get type '{typeName}' from assembly '{assembly.GetName().Name}': {ex.Message}");
-                if (Plugin.Instance.DebugMode)
-                {
-                    Plugin.Instance.Logger.Debug(ex.StackTrace);
-                }
-                return null;
-            }
+            return EmbyVersionAdapter.Instance.TryGetType(assembly?.GetName().Name, typeName);
         }
     }
 }

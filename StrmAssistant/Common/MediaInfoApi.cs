@@ -13,6 +13,7 @@ using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.MediaInfo;
 using MediaBrowser.Model.Serialization;
+using StrmAssistant.Core;
 using StrmAssistant.Mod;
 using System;
 using System.Collections.Generic;
@@ -63,15 +64,15 @@ namespace StrmAssistant.Common
             _itemRepository = itemRepository;
             _jsonSerializer = jsonSerializer;
 
-            if (Plugin.Instance.ApplicationHost.ApplicationVersion >= new Version("4.9.0.25"))
+            if (EmbyVersionAdapter.Instance.IsVersionAtLeast(EmbyApiVersion.V4_9_0))
             {
                 try
                 {
                     var managerType = mediaSourceManager.GetType();
-                    var currentVersion = Plugin.Instance.ApplicationHost.ApplicationVersion;
+                    var currentVersion = EmbyVersionAdapter.Instance.CurrentVersion;
                     
-                    // 使用兼容性工具类查找方法，支持多个版本的签名
-                    _getStaticMediaSources = EmbyVersionCompatibility.FindCompatibleMethod(
+                    // 使用EmbyVersionAdapter查找兼容的方法签名
+                    _getStaticMediaSources = EmbyVersionAdapter.Instance.FindCompatibleMethod(
                         managerType,
                         "GetStaticMediaSources",
                         BindingFlags.Public | BindingFlags.Instance,
@@ -89,7 +90,7 @@ namespace StrmAssistant.Common
                         var paramCount = _getStaticMediaSources.GetParameters().Length;
                         _logger.Info($"{nameof(MediaInfoApi)} - Found GetStaticMediaSources method ({paramCount} parameters) for Emby {currentVersion}");
                         
-                        EmbyVersionCompatibility.LogCompatibilityInfo(
+                        EmbyVersionAdapter.Instance.LogCompatibilityInfo(
                             nameof(MediaInfoApi), 
                             true, 
                             $"GetStaticMediaSources method located with {paramCount} parameters");
@@ -103,7 +104,7 @@ namespace StrmAssistant.Common
                         _logger.Debug(e.StackTrace);
                     }
                     
-                    EmbyVersionCompatibility.LogCompatibilityInfo(
+                    EmbyVersionAdapter.Instance.LogCompatibilityInfo(
                         nameof(MediaInfoApi), 
                         false, 
                         "GetStaticMediaSources method lookup failed");
@@ -126,7 +127,7 @@ namespace StrmAssistant.Common
                     {
                         // ReversePatch失败但可以使用Reflection，这是完全正常的
                         _logger.Info($"{nameof(MediaInfoApi)} - Using optimized Reflection (performance: excellent)");
-                        EmbyVersionCompatibility.LogCompatibilityInfo(
+                        EmbyVersionAdapter.Instance.LogCompatibilityInfo(
                             nameof(MediaInfoApi),
                             true,
                             "Reflection mode with direct method invoke - performance optimized");
@@ -134,7 +135,7 @@ namespace StrmAssistant.Common
                     else if (reversePatchSuccess)
                     {
                         _logger.Info($"{nameof(MediaInfoApi)} - Harmony ReversePatch active (performance: optimal)");
-                        EmbyVersionCompatibility.LogCompatibilityInfo(
+                        EmbyVersionAdapter.Instance.LogCompatibilityInfo(
                             nameof(MediaInfoApi),
                             true,
                             "Harmony ReversePatch - best performance");
@@ -197,25 +198,27 @@ namespace StrmAssistant.Common
         private List<MediaSourceInfo> GetStaticMediaSourcesByRef(BaseItem item, bool enableAlternateMediaSources,
             LibraryOptions libraryOptions)
         {
-            switch (PatchTracker.FallbackPatchApproach)
+            using (PerformanceMonitor.Instance?.Measure("MediaInfoApi.GetStaticMediaSources"))
             {
-                case PatchApproach.Harmony:
-                    try
-                    {
-                        return GetStaticMediaSourcesStub(_mediaSourceManager, item, enableAlternateMediaSources, false,
-                            false, libraryOptions, null, null);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error($"Harmony stub invocation failed, falling back to reflection: {ex.Message}");
-                        if (Plugin.Instance.DebugMode)
+                switch (PatchTracker.FallbackPatchApproach)
+                {
+                    case PatchApproach.Harmony:
+                        try
                         {
-                            _logger.Debug(ex.StackTrace);
+                            return GetStaticMediaSourcesStub(_mediaSourceManager, item, enableAlternateMediaSources, false,
+                                false, libraryOptions, null, null);
                         }
-                        // 尝试降级到反射
-                        PatchTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                        return GetStaticMediaSourcesByRef(item, enableAlternateMediaSources, libraryOptions);
-                    }
+                        catch (Exception ex)
+                        {
+                            _logger.Error($"Harmony stub invocation failed, falling back to reflection: {ex.Message}");
+                            if (Plugin.Instance.DebugMode)
+                            {
+                                _logger.Debug(ex.StackTrace);
+                            }
+                            // 尝试降级到反射
+                            PatchTracker.FallbackPatchApproach = PatchApproach.Reflection;
+                            return GetStaticMediaSourcesByRef(item, enableAlternateMediaSources, libraryOptions);
+                        }
                     
                 case PatchApproach.Reflection:
                     if (_getStaticMediaSources == null)
@@ -313,9 +316,10 @@ namespace StrmAssistant.Common
                         return GetStaticMediaSourcesByApi(item, enableAlternateMediaSources, libraryOptions);
                     }
                     
-                default:
-                    // 回退到公共API
-                    return GetStaticMediaSourcesByApi(item, enableAlternateMediaSources, libraryOptions);
+                    default:
+                        // 回退到公共API
+                        return GetStaticMediaSourcesByApi(item, enableAlternateMediaSources, libraryOptions);
+                }
             }
         }
 

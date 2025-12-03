@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
@@ -17,25 +17,40 @@ namespace StrmAssistant.Mod
 
         protected void Initialize()
         {
+            PatchTracker.Status = PatchStatus.Initializing;
+            
             try
             {
                 OnInitialize();
+                PatchTracker.Status = PatchStatus.Initialized;
+                PatchTracker.InitializedAt = DateTime.Now;
             }
             catch (Exception e)
             {
+                PatchTracker.Status = PatchStatus.Failed;
+                PatchTracker.AddError($"Initialization failed: {e.Message}");
+                
                 if (Plugin.Instance.DebugMode)
                 {
                     Plugin.Instance.Logger.Debug(e.Message);
                     Plugin.Instance.Logger.Debug(e.StackTrace);
                 }
 
-                Plugin.Instance.Logger.Warn($"{PatchTracker.PatchType.Name} Init Failed");
+                Plugin.Instance.Logger.Warn($"{PatchTracker.PatchType.Name} Init Failed: {e.Message}");
                 PatchTracker.FallbackPatchApproach = PatchApproach.None;
             }
 
-            if (PatchTracker.FallbackPatchApproach == PatchApproach.None) return;
+            if (PatchTracker.FallbackPatchApproach == PatchApproach.None)
+            {
+                PatchTracker.Status = PatchStatus.NotSupported;
+                return;
+            }
 
-            if (HarmonyMod is null) PatchTracker.FallbackPatchApproach = PatchApproach.Reflection;
+            if (HarmonyMod is null)
+            {
+                PatchTracker.FallbackPatchApproach = PatchApproach.Reflection;
+                Plugin.Instance.Logger.Debug($"{PatchTracker.PatchType.Name} using Reflection (Harmony unavailable)");
+            }
         }
 
         protected abstract void OnInitialize();

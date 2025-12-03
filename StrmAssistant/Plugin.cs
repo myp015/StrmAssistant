@@ -3,6 +3,7 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Controller;
+using StrmAssistant.Core;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
@@ -98,6 +99,30 @@ namespace StrmAssistant
             Logger.Info("Plugin is getting loaded.");
             ApplicationHost = applicationHost;
             ApplicationPaths = applicationPaths;
+            
+            // 初始化核心架构组件
+            try
+            {
+                // 初始化版本适配器
+                EmbyVersionAdapter.Initialize(Logger, applicationHost.ApplicationVersion);
+                
+                // 初始化高性能反射系统
+                FastReflection.Initialize(Logger);
+                
+                // 初始化性能监控
+                PerformanceMonitor.Initialize(Logger);
+                
+                // 初始化服务定位器
+                ServiceLocator.Initialize(Logger);
+                
+                Logger.Info($"Core architecture initialized - Emby {applicationHost.ApplicationVersion} (API Version: {EmbyVersionAdapter.Instance.ApiVersion})");
+                Logger.Info("FastReflection and PerformanceMonitor enabled for optimal performance");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to initialize core architecture: {ex.Message}");
+                Logger.Error(ex.StackTrace);
+            }
 
             _libraryManager = libraryManager;
             _userManager = userManager;
@@ -143,10 +168,76 @@ namespace StrmAssistant
                 {
                     Logger.Info("Harmony Mod initialization completed successfully.");
                 }
+                
+                // 在调试模式下输出详细诊断
+                if (DebugMode)
+                {
+                    Logger.Debug(PatchManager.GetDiagnosticReport());
+                }
             }
             else
             {
                 Logger.Info("Harmony Mod is not supported in this environment. Using reflection-based approach.");
+            }
+            
+            // 执行启动健康检查
+            try
+            {
+                HealthCheck.Initialize(Logger);
+                var healthResult = HealthCheck.Instance.PerformHealthCheck();
+                Logger.Info($"Startup Health Check: {healthResult.OverallStatus}");
+                
+                if (healthResult.OverallStatus != HealthStatus.Healthy)
+                {
+                    if (DebugMode)
+                    {
+                        Logger.Debug(healthResult.ToString());
+                    }
+                    else
+                    {
+                        Logger.Warn($"Health issues detected. Enable DebugMode for details.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Health check failed: {ex.Message}");
+            }
+            
+            // 初始化优化建议系统
+            try
+            {
+                OptimizationAdvisor.Initialize(Logger);
+                var suggestions = OptimizationAdvisor.Instance.GetSuggestions();
+                
+                if (suggestions.Count > 0 && DebugMode)
+                {
+                    var criticalSuggestions = suggestions.Where(s => 
+                        s.Priority == OptimizationPriority.Critical || s.Priority == OptimizationPriority.High).ToList();
+                    
+                    if (criticalSuggestions.Any())
+                    {
+                        Logger.Warn($"Found {criticalSuggestions.Count} optimization suggestions. Use OptimizationAdvisor for details.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug($"Optimization advisor initialization failed: {ex.Message}");
+            }
+            
+            // 启动定期性能报告（仅在DebugMode下，每60分钟一次）
+            if (DebugMode)
+            {
+                try
+                {
+                    PerformanceReporter.Initialize(Logger, intervalMinutes: 60);
+                    Logger.Debug("PerformanceReporter started - Reports every 60 minutes");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Debug($"PerformanceReporter initialization failed: {ex.Message}");
+                }
             }
 
             LibraryApi = new LibraryApi(libraryManager, providerManager, fileSystem, mediaMountManager, userManager);

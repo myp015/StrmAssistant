@@ -50,10 +50,51 @@ jobs:
 
       - name: Package plugin files
         run: |
-          $pluginPath = "C:\Users\runneradmin\AppData\Roaming\Emby-Server\programdata\plugins"
+          # 创建临时打包目录
+          $packDir = "${{ github.workspace }}\pack"
           $outputPath = "${{ github.workspace }}\release"
+          New-Item -ItemType Directory -Force -Path $packDir
           New-Item -ItemType Directory -Force -Path $outputPath
-          Compress-Archive -Path "$pluginPath\*" -DestinationPath "$outputPath\StrmAssistant.zip" -Force
+          
+          # 从构建输出目录复制必要的DLL文件（避免嵌套）
+          $buildOutput = "${{ github.workspace }}\StrmAssistant\bin\Release\net6.0"
+          
+          # 复制主DLL和依赖
+          Copy-Item "$buildOutput\StrmAssistant.dll" -Destination $packDir
+          Copy-Item "$buildOutput\0Harmony.dll" -Destination $packDir -ErrorAction SilentlyContinue
+          Copy-Item "$buildOutput\ChineseConverter.dll" -Destination $packDir -ErrorAction SilentlyContinue
+          Copy-Item "$buildOutput\TinyPinyin.dll" -Destination $packDir -ErrorAction SilentlyContinue
+          
+          # 列出要打包的文件（用于调试）
+          Write-Host "Files to be packaged:"
+          Get-ChildItem $packDir | ForEach-Object { Write-Host "  - $($_.Name)" }
+          
+          # 打包（从pack目录内部打包，避免嵌套文件夹）
+          Push-Location $packDir
+          Compress-Archive -Path "*" -DestinationPath "$outputPath\StrmAssistant.zip" -Force
+          Pop-Location
+          
+          Write-Host "Package created: $outputPath\StrmAssistant.zip"
+          Write-Host "Package size: $((Get-Item "$outputPath\StrmAssistant.zip").Length / 1MB) MB"
+        shell: pwsh
+
+      - name: Verify package
+        run: |
+          $zipFile = "${{ github.workspace }}\release\StrmAssistant.zip"
+          if (Test-Path $zipFile) {
+            Write-Host "✓ Package created successfully"
+            Write-Host "  Size: $((Get-Item $zipFile).Length / 1MB) MB"
+            
+            # 验证压缩包内容
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            $zip = [System.IO.Compression.ZipFile]::OpenRead($zipFile)
+            Write-Host "  Files in package:"
+            $zip.Entries | ForEach-Object { Write-Host "    - $($_.Name) ($($_.Length) bytes)" }
+            $zip.Dispose()
+          } else {
+            Write-Error "✗ Package not found!"
+            exit 1
+          }
         shell: pwsh
 
       - name: Upload artifact
@@ -68,21 +109,37 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ inputs.version }}
-          name: ${{ inputs.version }}
+          name: Release ${{ inputs.version }}
           body: |
-            ## 更新内容
+            ## 🎉 StrmAssistant ${{ inputs.version }}
+            
+            ### 更新内容
             ${{ inputs.release_notes }}
             
-            ## 安装说明
+            ### 安装说明
             1. 下载 `StrmAssistant.zip`
-            2. 解压到 Emby 插件目录
+            2. 解压到 Emby 插件目录 (`plugins` 文件夹)
             3. 重启 Emby Server
             
+            ### 压缩包内容
+            - `StrmAssistant.dll` - 主插件
+            - `0Harmony.dll` - Harmony补丁库
+            - `ChineseConverter.dll` - 中文转换库
+            - `TinyPinyin.dll` - 拼音库
+            
+            ### 兼容性
+            - **最低版本**: Emby 4.8.0.0
+            - **推荐版本**: Emby 4.9.1.90+
+            - **框架**: .NET 6.0
+            
             ---
-            **构建编号**: #${{ github.run_number }}
-            **提交**: ${{ github.sha }}
-          files: ${{ github.workspace }}\release\StrmAssistant.zip
+            **构建编号**: #${{ github.run_number }}  
+            **提交**: `${{ github.sha }}`  
+            **构建时间**: ${{ github.event.head_commit.timestamp }}
+          files: |
+            ${{ github.workspace }}/release/StrmAssistant.zip
           draft: false
           prerelease: false
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

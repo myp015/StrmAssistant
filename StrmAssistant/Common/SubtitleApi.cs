@@ -11,6 +11,7 @@ using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.MediaInfo;
+using StrmAssistant.Core;
 using StrmAssistant.Mod;
 using System;
 using System.Collections.Generic;
@@ -50,7 +51,7 @@ namespace StrmAssistant.Common
 
             try
             {
-                var embyProviders = EmbyVersionCompatibility.TryLoadAssembly("Emby.Providers");
+                var embyProviders = EmbyVersionAdapter.Instance.TryLoadAssembly("Emby.Providers");
                 if (embyProviders == null)
                 {
                     _logger.Error($"{nameof(SubtitleApi)} - Failed to load Emby.Providers assembly");
@@ -58,7 +59,7 @@ namespace StrmAssistant.Common
                     return;
                 }
 
-                var subtitleResolverType = EmbyVersionCompatibility.TryGetType(embyProviders, "Emby.Providers.MediaInfo.SubtitleResolver");
+                var subtitleResolverType = EmbyVersionAdapter.Instance.TryGetType("Emby.Providers", "Emby.Providers.MediaInfo.SubtitleResolver");
                 if (subtitleResolverType != null)
                 {
                     var subtitleResolverConstructor = subtitleResolverType.GetConstructor(new[]
@@ -127,7 +128,7 @@ namespace StrmAssistant.Common
                     }
                 }
 
-                var ffProbeSubtitleInfoType = EmbyVersionCompatibility.TryGetType(embyProviders, "Emby.Providers.MediaInfo.FFProbeSubtitleInfo");
+                var ffProbeSubtitleInfoType = EmbyVersionAdapter.Instance.TryGetType("Emby.Providers", "Emby.Providers.MediaInfo.FFProbeSubtitleInfo");
                 if (ffProbeSubtitleInfoType != null)
                 {
                     var ffProbeSubtitleInfoConstructor = ffProbeSubtitleInfoType.GetConstructor(new[]
@@ -172,7 +173,7 @@ namespace StrmAssistant.Common
                 PatchTracker.FallbackPatchApproach = PatchApproach.Reflection;
                 _logger.Info($"{nameof(SubtitleApi)} - Using fallback approach. Some features may be limited.");
                 
-                EmbyVersionCompatibility.LogCompatibilityInfo(
+                EmbyVersionAdapter.Instance.LogCompatibilityInfo(
                     nameof(SubtitleApi),
                     false,
                     "Some internal APIs not found - fallback mode active");
@@ -189,7 +190,7 @@ namespace StrmAssistant.Common
                     _logger.Info($"{nameof(SubtitleApi)} - Harmony patches applied successfully");
                 }
                 
-                EmbyVersionCompatibility.LogCompatibilityInfo(
+                EmbyVersionAdapter.Instance.LogCompatibilityInfo(
                     nameof(SubtitleApi),
                     true,
                     $"Using {PatchTracker.FallbackPatchApproach} approach");
@@ -197,7 +198,7 @@ namespace StrmAssistant.Common
             else
             {
                 _logger.Info($"{nameof(SubtitleApi)} - Reflection approach active");
-                EmbyVersionCompatibility.LogCompatibilityInfo(
+                EmbyVersionAdapter.Instance.LogCompatibilityInfo(
                     nameof(SubtitleApi),
                     true,
                     "Reflection mode (Harmony not supported on platform)");

@@ -1,4 +1,5 @@
 using HarmonyLib;
+using StrmAssistant.Core;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -12,6 +13,8 @@ namespace StrmAssistant.Mod
     {
         public static Harmony HarmonyMod;
         public static readonly List<PatchTracker> PatchTrackerList = new List<PatchTracker>();
+        
+        private static bool _isInitialized = false;
 
         public static EnableImageCapture EnableImageCapture;
         public static EnhanceChineseSearch EnhanceChineseSearch;
@@ -44,10 +47,17 @@ namespace StrmAssistant.Mod
 
         public static void Initialize()
         {
+            if (_isInitialized)
+            {
+                Plugin.Instance.Logger.Warn("PatchManager already initialized");
+                return;
+            }
+            
             try
             {
                 HarmonyMod = new Harmony("emby.mod");
-                Plugin.Instance.Logger.Info("Harmony Mod initialized successfully");
+                Plugin.Instance.Logger.Info($"Harmony Mod initialized successfully (Emby {Plugin.Instance.ApplicationHost.ApplicationVersion})");
+                _isInitialized = true;
             }
             catch (Exception e)
             {
@@ -522,6 +532,61 @@ namespace StrmAssistant.Mod
 
             return MethodInfoCache.GetOrAdd(Tuple.Create(patchType, patchMethod),
                 tuple => AccessTools.Method(tuple.Item1, tuple.Item2));
+        }
+        
+        /// <summary>
+        /// 获取所有补丁的诊断报告
+        /// </summary>
+        public static string GetDiagnosticReport()
+        {
+            var report = new System.Text.StringBuilder();
+            report.AppendLine("=== Patch Manager Diagnostic Report ===");
+            report.AppendLine($"Emby Version: {Plugin.Instance.ApplicationHost.ApplicationVersion}");
+            report.AppendLine($"Harmony Initialized: {HarmonyMod != null}");
+            report.AppendLine($"Total Patches: {PatchTrackerList.Count}");
+            report.AppendLine();
+            
+            var runningPatches = PatchTrackerList.Where(p => p.IsRunning).ToList();
+            var failedPatches = PatchTrackerList.Where(p => !p.IsRunning && p.IsSupported).ToList();
+            
+            report.AppendLine($"Running Patches: {runningPatches.Count}");
+            foreach (var patch in runningPatches.OrderBy(p => p.PatchType.Name))
+            {
+                var method = patch.FallbackPatchApproach == patch.DefaultPatchApproach 
+                    ? patch.FallbackPatchApproach.ToString() 
+                    : $"{patch.DefaultPatchApproach} → {patch.FallbackPatchApproach}";
+                report.AppendLine($"  ✓ {patch.PatchType.Name}: {method}");
+            }
+            
+            if (failedPatches.Any())
+            {
+                report.AppendLine();
+                report.AppendLine($"Failed Patches: {failedPatches.Count}");
+                foreach (var patch in failedPatches.OrderBy(p => p.PatchType.Name))
+                {
+                    report.AppendLine($"  ✗ {patch.PatchType.Name}");
+                    if (patch.HasErrors)
+                    {
+                        foreach (var error in patch.ErrorMessages.Take(3))
+                        {
+                            report.AppendLine($"    - {error}");
+                        }
+                    }
+                }
+            }
+            
+            report.AppendLine("======================================");
+            return report.ToString();
+        }
+        
+        /// <summary>
+        /// 清除所有缓存
+        /// </summary>
+        public static void ClearCaches()
+        {
+            HarmonyMethodCache.Clear();
+            MethodInfoCache.Clear();
+            Plugin.Instance.Logger.Debug("PatchManager caches cleared");
         }
     }
 }
