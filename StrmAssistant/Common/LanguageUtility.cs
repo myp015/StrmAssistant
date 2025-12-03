@@ -1,4 +1,4 @@
-﻿using Microsoft.International.Converters.TraditionalChineseToSimplifiedConverter;
+using Microsoft.International.Converters.TraditionalChineseToSimplifiedConverter;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -77,7 +77,7 @@ namespace StrmAssistant.Common
 
             if (IsChineseJapanese(input) || IsKorean(input))
             {
-                return CleanPersonNameRegex.Replace(input, "");
+                return CleanPersonNameRegex.Replace(input, " ").Trim();
             }
 
             return input.Trim();

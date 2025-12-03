@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
@@ -225,7 +225,7 @@ namespace StrmAssistant.Mod
 
                         if (!string.IsNullOrWhiteSpace(profilePath))
                         {
-                            personInfo.ImageUrl = "https://image.tmdb.org/t/p/original" + profilePath;
+                            personInfo.ImageUrl = AltMovieDbConfig.CurrentMovieDbImageUrl + "/t/p/original" + profilePath;
                         }
 
                         if (id > 0)

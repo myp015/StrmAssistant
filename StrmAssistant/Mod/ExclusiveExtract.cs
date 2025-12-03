@@ -448,7 +448,9 @@ namespace StrmAssistant.Mod
                     CurrentRefreshContext.Value.MediaInfoUpdated = true;
                 }
             }
-            else if (CurrentRefreshContext.Value.IsExternalSubtitleChanged)
+
+            // 无论ffprobe是否运行，只要外挂字幕改变了就更新字幕信息
+            if (CurrentRefreshContext.Value.IsExternalSubtitleChanged)
             {
                 var refreshOptions = CurrentRefreshContext.Value.MetadataRefreshOptions;
                 _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, refreshOptions, false, isPersistInScope)
