@@ -2,6 +2,21 @@ name: Build Plugin
 
 on:
   workflow_dispatch:  # 仅允许手动触发
+    inputs:
+      create_release:
+        description: '是否创建 Release 版本'
+        required: true
+        type: boolean
+        default: false
+      version:
+        description: '版本号 (例如: v1.0.0)'
+        required: false
+        type: string
+      release_notes:
+        description: '更新日志'
+        required: false
+        type: string
+        default: '- Bug 修复和性能优化'
 
 jobs:
   build:
@@ -33,10 +48,41 @@ jobs:
       - name: Build the project
         run: dotnet build StrmAssistant/StrmAssistant.csproj --no-restore --configuration Release -p:UseSharedCompilation=false
 
+      - name: Package plugin files
+        run: |
+          $pluginPath = "C:\Users\runneradmin\AppData\Roaming\Emby-Server\programdata\plugins"
+          $outputPath = "${{ github.workspace }}\release"
+          New-Item -ItemType Directory -Force -Path $outputPath
+          Compress-Archive -Path "$pluginPath\*" -DestinationPath "$outputPath\StrmAssistant.zip" -Force
+        shell: pwsh
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StrmAssistantLite-${{ github.run_number }}
-          path: C:\Users\runneradmin\AppData\Roaming\Emby-Server\programdata\plugins\*
-          compression-level: 0  # DLL已经是二进制，不需要压缩
+          name: StrmAssistant-build-${{ github.run_number }}
+          path: ${{ github.workspace }}\release\StrmAssistant.zip
           retention-days: 30
+
+      - name: Create Release
+        if: ${{ inputs.create_release == true }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ inputs.version }}
+          name: ${{ inputs.version }}
+          body: |
+            ## 更新内容
+            ${{ inputs.release_notes }}
+            
+            ## 安装说明
+            1. 下载 `StrmAssistant.zip`
+            2. 解压到 Emby 插件目录
+            3. 重启 Emby Server
+            
+            ---
+            **构建编号**: #${{ github.run_number }}
+            **提交**: ${{ github.sha }}
+          files: ${{ github.workspace }}\release\StrmAssistant.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
