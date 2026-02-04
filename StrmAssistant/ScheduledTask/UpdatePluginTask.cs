@@ -71,6 +71,10 @@ namespace StrmAssistant.ScheduledTask
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
+            // 直接返回，不执行任何更新逻辑
+            _logger.Info("Update task triggered but skipped: updates are disabled manually.");
+            progress.Report(100);
+            return;
             await Task.Yield();
             progress.Report(0);
 

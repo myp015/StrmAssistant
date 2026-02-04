@@ -150,36 +150,27 @@ namespace StrmAssistant.Common
             }
 
             // 尝试修改LibraryMonitor以忽略.json文件（这个失败不影响MediaInfoApi的核心功能）
-            try
-            {
-                var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
-                var libraryMonitorImpl =
-                    embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.IO.LibraryMonitor");
-                var alwaysIgnoreExtensions = libraryMonitorImpl.GetField("_alwaysIgnoreExtensions",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
-                var currentArray = (string[])alwaysIgnoreExtensions.GetValue(libraryMonitor);
-                var newArray = new string[currentArray.Length + 1];
-                Array.Copy(currentArray, newArray, currentArray.Length);
-                newArray[newArray.Length - 1] = ".json";
-                alwaysIgnoreExtensions.SetValue(libraryMonitor, newArray);
-                
-                if (Plugin.Instance.DebugMode)
-                {
-                    _logger.Debug("LibraryMonitor .json ignore extension added successfully");
-                }
-            }
-            catch (Exception e)
-            {
-                // LibraryMonitor修改失败不影响MediaInfoApi的核心功能，只记录警告
-                _logger.Warn($"{nameof(MediaInfoApi)} - Failed to modify LibraryMonitor (json file ignore). This is non-critical.");
-                if (Plugin.Instance.DebugMode)
-                {
-                    _logger.Debug($"LibraryMonitor modification error: {e.Message}");
-                    _logger.Debug(e.StackTrace);
-                }
-                // 不修改FallbackPatchApproach，保持之前设置的状态（Reflection或Harmony）
-            }
-        }
+		try
+		{
+			var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
+			var libraryMonitorImpl = embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.IO.LibraryMonitor");
+    
+			// 4.9 诊断显示存在 _tempIgnoredPaths，虽然它不是过滤后缀的，但可以避免报错
+			var field = libraryMonitorImpl.GetField("_alwaysIgnoreExtensions", BindingFlags.Instance | BindingFlags.NonPublic)
+						?? libraryMonitorImpl.GetField("alwaysIgnoreExtensions", BindingFlags.Instance | BindingFlags.NonPublic);
+
+			if (field != null) 
+			{
+				var currentArray = (string[])field.GetValue(libraryMonitor);
+				if (!currentArray.Contains(".json", StringComparer.OrdinalIgnoreCase))
+				{
+					var newArray = currentArray.Concat(new[] { ".json" }).ToArray();
+					field.SetValue(libraryMonitor, newArray);
+				}
+			}
+		}
+		catch { /* 4.9.1.90+ 结构改变，静默跳过即可 */ }
+				}
 
         [HarmonyReversePatch]
         private static List<MediaSourceInfo> GetStaticMediaSourcesStub(IMediaSourceManager instance, BaseItem item,
