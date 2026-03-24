@@ -64,7 +64,7 @@ namespace StrmAssistant.Common
             _itemRepository = itemRepository;
             _jsonSerializer = jsonSerializer;
 
-            if (EmbyVersionAdapter.Instance.IsVersionAtLeast(EmbyApiVersion.V4_9_0))
+            if (EmbyVersionAdapter.Instance.IsVersionAtLeast(EmbyApiVersion.V4_9_1))
             {
                 try
                 {
@@ -76,12 +76,7 @@ namespace StrmAssistant.Common
                         managerType,
                         "GetStaticMediaSources",
                         BindingFlags.Public | BindingFlags.Instance,
-                        // 版本1 (4.9.1.80+): 5个参数 (item, enablePathSubstitution, enableUserData, profile, user)
-                        new[] { typeof(BaseItem), typeof(bool), typeof(bool), typeof(DeviceProfile), typeof(User) },
-                        // 版本2 (旧版本): 7个参数
-                        new[] { typeof(BaseItem), typeof(bool), typeof(bool), typeof(bool), typeof(LibraryOptions), typeof(DeviceProfile), typeof(User) },
-                        // 版本3 (可能的其他签名): 6个参数
-                        new[] { typeof(BaseItem), typeof(bool), typeof(bool), typeof(bool), typeof(DeviceProfile), typeof(User) }
+                        new[] { typeof(BaseItem), typeof(bool), typeof(bool), typeof(DeviceProfile), typeof(User) }
                     );
                     
                     if (_getStaticMediaSources != null)

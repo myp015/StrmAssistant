@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using static StrmAssistant.Mod.PatchManager;
 using static StrmAssistant.Options.Utility;
@@ -17,9 +18,6 @@ namespace StrmAssistant.Mod
     public class EnhanceChineseSearch : PatchBase<EnhanceChineseSearch>
     {
         private static readonly Version AppVer = Plugin.Instance.ApplicationHost.ApplicationVersion;
-        private static readonly Version Ver4830 = new Version("4.8.3.0");
-        private static readonly Version Ver4900 = new Version("4.9.0.0");
-        private static readonly Version Ver4937 = new Version("4.9.0.37");
 
         private static Type raw;
         private static MethodInfo sqlite3_enable_load_extension;
@@ -36,6 +34,7 @@ namespace StrmAssistant.Mod
         private static string _tokenizerPath;
         private static readonly object _lock = new object();
         private static bool _patchPhase2Initialized;
+        private static readonly string RebuildMarkerPath = Path.Combine(Plugin.Instance.ApplicationPaths.TempDirectory, "strmassistant_chinese_search_rebuild.pending");
         private static readonly Dictionary<string, Regex> patterns = new Dictionary<string, Regex>
         {
             { "imdb", new Regex(@"^tt\d{7,8}$", RegexOptions.IgnoreCase | RegexOptions.Compiled) },
@@ -52,13 +51,16 @@ namespace StrmAssistant.Mod
             if (Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearch ||
                 Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearchRestore)
             {
-                if (AppVer >= Ver4830)
+                if (RuntimeInformation.ProcessArchitecture != Architecture.X64)
                 {
-                    PatchPhase1();
+                    Plugin.Instance.Logger.Warn("EnhanceChineseSearch disabled on non-x64 architectures.");
+                    Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearch = false;
+                    Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearchRestore = false;
+                    Plugin.Instance.MainOptionsStore.SavePluginOptionsSuppress();
                 }
                 else
                 {
-                    ResetOptions();
+                    PatchPhase1();
                 }
             }
         }
@@ -131,10 +133,7 @@ namespace StrmAssistant.Mod
                             sqliteItemRepositoryType, 
                             "GetJoinCommandText", 
                             BindingFlags.NonPublic | BindingFlags.Instance,
-                            // Emby 4.9.1.x 及以上版本，移除了 itemLinks2TableQualifier 参数
-                            new[] { typeof(MediaBrowser.Controller.Entities.InternalItemsQuery), typeof(List<KeyValuePair<string, string>>), typeof(string), typeof(bool) },
-                            // Emby 4.9.0.x 版本
-                            new[] { typeof(MediaBrowser.Controller.Entities.InternalItemsQuery), typeof(List<KeyValuePair<string, string>>), typeof(string), typeof(string), typeof(bool) }
+                            new[] { typeof(MediaBrowser.Controller.Entities.InternalItemsQuery), typeof(List<KeyValuePair<string, string>>), typeof(string), typeof(bool) }
                         );
 
                         if (_getJoinCommandText != null)
@@ -235,16 +234,7 @@ namespace StrmAssistant.Mod
 
         private static void PatchPhase2(IDatabaseConnection connection)
         {
-            string ftsTableName;
-
-            if (AppVer >= Ver4830)
-            {
-                ftsTableName = "fts_search9";
-            }
-            else
-            {
-                ftsTableName = "fts_search8";
-            }
+            var ftsTableName = "fts_search9";
 
             var tokenizerCheckQuery = $@"
                 SELECT 
@@ -295,15 +285,35 @@ namespace StrmAssistant.Mod
 
                         if (patchSearchFunctionsResult)
                         {
-                            if (string.Equals(CurrentTokenizerName, "unicode61 remove_diacritics 2", StringComparison.Ordinal))
+                            // 升级场景：本次启动仅做标记，下次重启再自动重建，避免升级当次破坏数据库
+                            if (CurrentTokenizerName == "unknown")
                             {
-                                rebuildFtsResult = RebuildFts(connection, ftsTableName, "simple");
+                                ScheduleRebuildOnNextRestart();
+                                Plugin.Instance.Logger.Warn("EnhanceChineseSearch: tokenizer state unknown, rebuild scheduled for next restart");
                             }
-
-                            if (rebuildFtsResult)
+                            else if (string.Equals(CurrentTokenizerName, "unicode61 remove_diacritics 2", StringComparison.Ordinal))
                             {
+                                // 已是新版 tokenizer；如有计划重建标记，执行重建
+                                if (HasScheduledRebuild())
+                                {
+                                    rebuildFtsResult = RebuildFts(connection, ftsTableName, "simple");
+                                    if (rebuildFtsResult)
+                                    {
+                                        ClearScheduledRebuild();
+                                        CurrentTokenizerName = "simple";
+                                        Plugin.Instance.Logger.Info("EnhanceChineseSearch - Scheduled rebuild completed");
+                                    }
+                                }
+                                else
+                                {
+                                    Plugin.Instance.Logger.Info("EnhanceChineseSearch: tokenizer already upgraded, skipping rebuild");
+                                }
+                            }
+                            else
+                            {
+                                // 当前是 simple，说明已经开启；保持状态即可
                                 CurrentTokenizerName = "simple";
-                                Plugin.Instance.Logger.Info("EnhanceChineseSearch - Load Success");
+                                Plugin.Instance.Logger.Info("EnhanceChineseSearch - Load Success (search patches active)");
                             }
                         }
                     }
@@ -346,9 +356,8 @@ namespace StrmAssistant.Mod
             }
             else if (!rebuildFtsResult || string.Equals(CurrentTokenizerName, "unknown", StringComparison.Ordinal))
             {
-                // Patch 成功但重建 FTS 失败，或者 tokenizer 状态未知
-                Plugin.Instance.Logger.Warn("EnhanceChineseSearch: Patch succeeded but FTS rebuild failed or tokenizer unknown, resetting options");
-                ResetOptions();
+                // Patch 成功但重建 FTS 失败，或者 tokenizer 状态未知：保留设置，等待下次重启重建
+                Plugin.Instance.Logger.Warn("EnhanceChineseSearch: Patch succeeded but rebuild pending/failed, keep settings and retry on next restart");
             }
         }
 
@@ -356,27 +365,14 @@ namespace StrmAssistant.Mod
         {
             string populateQuery;
 
-            if (AppVer < Ver4900)
-            {
-                populateQuery =
-                    $"insert into {ftsTableName}(RowId, Name, OriginalTitle, SeriesName, Album) select id, " +
-                    GetSearchColumnNormalization("Name") + ", " +
-                    GetSearchColumnNormalization("OriginalTitle") + ", " +
-                    GetSearchColumnNormalization("SeriesName") + ", " +
-                    GetSearchColumnNormalization("Album") +
-                    " from MediaItems";
-            }
-            else
-            {
-                populateQuery =
-                    $"insert into {ftsTableName}(RowId, Name, OriginalTitle, SeriesName, Album) select id, " +
-                    GetSearchColumnNormalization("Name") + ", " +
-                    GetSearchColumnNormalization("OriginalTitle") + ", " +
-                    GetSearchColumnNormalization("SeriesName") + ", " +
-                    GetSearchColumnNormalization(
-                        "(select case when AlbumId is null then null else (select name from MediaItems where Id = AlbumId limit 1) end)") +
-                    " from MediaItems";
-            }
+            populateQuery =
+                $"insert into {ftsTableName}(RowId, Name, OriginalTitle, SeriesName, Album) select id, " +
+                GetSearchColumnNormalization("Name") + ", " +
+                GetSearchColumnNormalization("OriginalTitle") + ", " +
+                GetSearchColumnNormalization("SeriesName") + ", " +
+                GetSearchColumnNormalization(
+                    "(select case when AlbumId is null then null else (select name from MediaItems where Id = AlbumId limit 1) end)") +
+                " from MediaItems";
 
             connection.BeginTransaction(TransactionMode.Deferred);
             try
@@ -415,6 +411,50 @@ namespace StrmAssistant.Mod
             }
 
             return false;
+        }
+
+        private static void ScheduleRebuildOnNextRestart()
+        {
+            try
+            {
+                var dir = Path.GetDirectoryName(RebuildMarkerPath);
+                if (!string.IsNullOrEmpty(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                File.WriteAllText(RebuildMarkerPath, DateTime.UtcNow.ToString("O"));
+            }
+            catch (Exception ex)
+            {
+                Plugin.Instance.Logger.Warn($"EnhanceChineseSearch: failed to write rebuild marker: {ex.Message}");
+            }
+        }
+
+        private static bool HasScheduledRebuild()
+        {
+            try
+            {
+                return File.Exists(RebuildMarkerPath);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void ClearScheduledRebuild()
+        {
+            try
+            {
+                if (File.Exists(RebuildMarkerPath))
+                {
+                    File.Delete(RebuildMarkerPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Instance.Logger.Warn($"EnhanceChineseSearch: failed to clear rebuild marker: {ex.Message}");
+            }
         }
 
         private static string GetSearchColumnNormalization(string columnName)
@@ -504,11 +544,12 @@ namespace StrmAssistant.Mod
             var winSimpleTokenizer = $"{tokenizerNamespace}.win.libsimple.so";
             var linuxSimpleTokenizer = $"{tokenizerNamespace}.linux.libsimple.so";
 
+            var architecture = RuntimeInformation.ProcessArchitecture;
             switch (Environment.OSVersion.Platform)
             {
-                case PlatformID.Win32NT when Environment.Is64BitOperatingSystem:
+                case PlatformID.Win32NT when architecture == Architecture.X64:
                     return winSimpleTokenizer;
-                case PlatformID.Unix when Environment.Is64BitOperatingSystem:
+                case PlatformID.Unix when architecture == Architecture.X64:
                     return linuxSimpleTokenizer;
                 default:
                     return null;
@@ -522,13 +563,11 @@ namespace StrmAssistant.Mod
                 case PlatformID.Win32NT:
                     return new Dictionary<Version, string>
                     {
-                        { new Version(0, 4, 0), "a83d90af9fb88e75a1ddf2436c8b67954c761c83" },
                         { new Version(0, 5, 0), "aed57350b46b51bb7d04321b7fe8e5e60b0cdbdc" }
                     };
                 case PlatformID.Unix:
                     return new Dictionary<Version, string>
                     {
-                        { new Version(0, 4, 0), "f7fb8ba0b98e358dfaa87570dc3426ee7f00e1b6" },
                         { new Version(0, 5, 0), "8e36162f96c67d77c44b36093f31ae4d297b15c0" }
                     };
                 default:
@@ -879,7 +918,7 @@ namespace StrmAssistant.Mod
                     }
                 }
 
-                if (AppVer >= Ver4937 && !string.IsNullOrEmpty(query.SearchTerm))
+                if (!string.IsNullOrEmpty(query.SearchTerm))
                 {
                     var result = LoadTokenizerExtension(db);
                 }

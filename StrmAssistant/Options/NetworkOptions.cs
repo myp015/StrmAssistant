@@ -35,7 +35,7 @@ namespace StrmAssistant
         public bool IgnoreCertificateValidation { get; set; } = false;
 
         [Browsable(false)]
-        public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
+        public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
 
         protected override void Validate(ValidationContext context)
         {

@@ -140,7 +140,7 @@ namespace StrmAssistant.Options
         public SpacerItem ClearIntroResultSeparator { get; set; } = new SpacerItem(SpacerSize.Small);
 
         [Browsable(false)]
-        public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
+        public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
 
         protected override void Validate(ValidationContext context)
         {

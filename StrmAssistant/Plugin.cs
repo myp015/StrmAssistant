@@ -99,6 +99,12 @@ namespace StrmAssistant
             Logger.Info("Plugin is getting loaded.");
             ApplicationHost = applicationHost;
             ApplicationPaths = applicationPaths;
+
+            if (ApplicationHost.ApplicationVersion < new Version("4.9.1.0"))
+            {
+                throw new NotSupportedException(
+                    $"StrmAssistant requires Emby >= 4.9.1.0, current: {ApplicationHost.ApplicationVersion}");
+            }
             
             // 初始化核心架构组件
             try
@@ -140,6 +146,8 @@ namespace StrmAssistant
             IntroSkipStore = new IntroSkipOptionsStore(applicationHost, Logger, Name + "_" + nameof(IntroSkipOptions));
             ExperienceEnhanceStore = new ExperienceEnhanceOptionsStore(applicationHost, Logger,
                 Name + "_" + nameof(ExperienceEnhanceOptions));
+
+            MigrateChineseSearchOptions();
             InitializeOptionCache();
 
             if (MainOptionsStore.GetOptions().AboutOptions.DebugMode)
@@ -503,6 +511,49 @@ namespace StrmAssistant
             base.OnUninstalling();
         }
 
+        private void MigrateChineseSearchOptions()
+        {
+            try
+            {
+                var configDir = ApplicationPaths.PluginConfigurationsPath;
+                Directory.CreateDirectory(configDir);
+                var markerPath = Path.Combine(configDir,
+                    $"{Name}_chinese_search_migrated_2_2_0.flag");
+                if (File.Exists(markerPath)) return;
+
+                var options = MainOptionsStore.GetOptions();
+                var changed = false;
+
+                if (options.ModOptions.EnhanceChineseSearch)
+                {
+                    options.ModOptions.EnhanceChineseSearch = false;
+                    changed = true;
+                }
+
+                if (options.ModOptions.EnhanceChineseSearchRestore)
+                {
+                    options.ModOptions.EnhanceChineseSearchRestore = false;
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    MainOptionsStore.SavePluginOptionsSuppress();
+                    Logger.Info("EnhanceChineseSearch has been disabled after upgrade. User must re-enable it manually to trigger rebuild.");
+                }
+
+                File.WriteAllText(markerPath, DateTime.UtcNow.ToString("O"));
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to migrate Chinese search options: {ex.Message}");
+                if (DebugMode)
+                {
+                    Logger.Debug(ex.StackTrace);
+                }
+            }
+        }
+
         public ImageFormat ThumbImageFormat => ImageFormat.Png;
 
         public override string Description => "Extract MediaInfo and Enable IntroSkip";
@@ -520,7 +571,11 @@ namespace StrmAssistant
 
         public bool DebugMode;
 
-        public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
+        public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
+
+        public bool IsArm64 => RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
+
+        public bool SupportsHarmony => RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
 
         public Stream GetThumbImage()
         {

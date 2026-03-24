@@ -11,13 +11,9 @@ namespace StrmAssistant.Common
     /// 注意：此类已被EmbyVersionAdapter取代，保留仅为向后兼容
     /// 建议使用 StrmAssistant.Core.EmbyVersionAdapter 代替
     /// </summary>
-    [Obsolete("使用 StrmAssistant.Core.EmbyVersionAdapter 代替")]
     public static class EmbyVersionCompatibility
     {
         // 已知的Emby版本里程碑
-        public static readonly Version Version4800 = new Version("4.8.0.0");
-        public static readonly Version Version4830 = new Version("4.8.3.0");
-        public static readonly Version Version4900 = new Version("4.9.0.0");
         public static readonly Version Version4910 = new Version("4.9.1.0");
         public static readonly Version Version49180 = new Version("4.9.1.80");
         public static readonly Version Version49190 = new Version("4.9.1.90");

@@ -28,23 +28,20 @@ namespace StrmAssistant.Mod
 
         protected override void OnInitialize()
         {
-            if (Plugin.Instance.ApplicationHost.ApplicationVersion >= new Version("4.8.4.0"))
+            var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
+            
+            // 1. 自动创建合集文件夹的方法
+            var collectionManager = embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Collections.CollectionManager");
+            _ensureLibraryFolder = collectionManager?.GetMethod("EnsureLibraryFolder", BindingFlags.Instance | BindingFlags.NonPublic);
+            
+            // 2. 用户视图查询方法（仅支持 4.9.1+ 的 3 参数版本）
+            var userViewManager = embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Library.UserViewManager");
+            _getUserViews = userViewManager?.GetMethods(BindingFlags.Instance | BindingFlags.Public)
+                .FirstOrDefault(m => m.Name == "GetUserViews" && m.GetParameters().Length == 3);
+
+            if (_ensureLibraryFolder == null || _getUserViews == null)
             {
-                var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
-                
-                // 1. 自动创建合集文件夹的方法
-                var collectionManager = embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Collections.CollectionManager");
-                _ensureLibraryFolder = collectionManager?.GetMethod("EnsureLibraryFolder", BindingFlags.Instance | BindingFlags.NonPublic);
-                
-                // 2. 用户视图查询方法
-                var userViewManager = embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Library.UserViewManager");
-                // 适配 4.9 (3参数) 和 4.8 (4参数)
-                _getUserViews = userViewManager?.GetMethods(BindingFlags.Instance | BindingFlags.Public)
-                    .FirstOrDefault(m => m.Name == "GetUserViews" && (m.GetParameters().Length == 3 || m.GetParameters().Length == 4));
-            }
-            else
-            {
-                Plugin.Instance.Logger.Warn("NoBoxsetsAutoCreation - Minimum required server version is 4.8.4.0");
+                Plugin.Instance.Logger.Warn("NoBoxsetsAutoCreation - Required methods for Emby 4.9.1+ not found");
                 PatchTracker.FallbackPatchApproach = PatchApproach.None;
                 PatchTracker.IsSupported = false;
             }

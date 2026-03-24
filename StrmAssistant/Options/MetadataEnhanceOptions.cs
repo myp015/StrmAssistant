@@ -175,7 +175,7 @@ namespace StrmAssistant.Options
             AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "NfoMetadata") && IsModSupported;
 
         [Browsable(false)]
-        public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
+        public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64 || RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
 
         public void Initialize()
         {
