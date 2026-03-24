@@ -133,7 +133,10 @@ namespace StrmAssistant.Mod
                             sqliteItemRepositoryType, 
                             "GetJoinCommandText", 
                             BindingFlags.NonPublic | BindingFlags.Instance,
-                            new[] { typeof(MediaBrowser.Controller.Entities.InternalItemsQuery), typeof(List<KeyValuePair<string, string>>), typeof(string), typeof(bool) }
+                            // Emby 4.9.1.x 及以上版本，移除了 itemLinks2TableQualifier 参数
+                            new[] { typeof(MediaBrowser.Controller.Entities.InternalItemsQuery), typeof(List<KeyValuePair<string, string>>), typeof(string), typeof(bool) },
+                            // Emby 4.9.0.x 版本
+                            new[] { typeof(MediaBrowser.Controller.Entities.InternalItemsQuery), typeof(List<KeyValuePair<string, string>>), typeof(string), typeof(string), typeof(bool) }
                         );
 
                         if (_getJoinCommandText != null)
