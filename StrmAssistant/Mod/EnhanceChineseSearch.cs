@@ -8,7 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using static StrmAssistant.Mod.PatchManager;
 using static StrmAssistant.Options.Utility;
@@ -51,17 +50,7 @@ namespace StrmAssistant.Mod
             if (Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearch ||
                 Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearchRestore)
             {
-                if (RuntimeInformation.ProcessArchitecture != Architecture.X64)
-                {
-                    Plugin.Instance.Logger.Warn("EnhanceChineseSearch disabled on non-x64 architectures.");
-                    Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearch = false;
-                    Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearchRestore = false;
-                    Plugin.Instance.MainOptionsStore.SavePluginOptionsSuppress();
-                }
-                else
-                {
-                    PatchPhase1();
-                }
+                PatchPhase1();
             }
         }
 
@@ -227,7 +216,7 @@ namespace StrmAssistant.Mod
             if (EnsureTokenizerExists() && PatchUnpatch(Instance.PatchTracker, true, _createConnection,
                     postfix: nameof(CreateConnectionPostfix))) return;
 
-            if (Plugin.Instance.DebugMode)
+            if (Plugin.Instance.DebugMode && !PatchManager.IsArm64)
             {
                 Plugin.Instance.Logger.Debug("EnhanceChineseSearch - PatchPhase1 Failed");
             }
@@ -347,14 +336,20 @@ namespace StrmAssistant.Mod
                 if (string.Equals(CurrentTokenizerName, "unicode61 remove_diacritics 2", StringComparison.Ordinal))
                 {
                     // Patch 失败且 tokenizer 未切换，说明功能无法启用
-                    Plugin.Instance.Logger.Warn("EnhanceChineseSearch: Patch failed and tokenizer not switched, resetting options");
+                    if (!PatchManager.IsArm64)
+                    {
+                        Plugin.Instance.Logger.Warn("EnhanceChineseSearch: Patch failed and tokenizer not switched, resetting options");
+                    }
                     ResetOptions();
                 }
                 else if (string.Equals(CurrentTokenizerName, "simple", StringComparison.Ordinal))
                 {
                     // Tokenizer 已经是 simple，说明之前已经成功启用过
                     // 即使 patch 失败（可能因为使用 Reflection），功能仍然可用
-                    Plugin.Instance.Logger.Info("EnhanceChineseSearch: Patch failed but tokenizer is already 'simple', keeping options enabled");
+                    if (!PatchManager.IsArm64)
+                    {
+                        Plugin.Instance.Logger.Info("EnhanceChineseSearch: Patch failed but tokenizer is already 'simple', keeping options enabled");
+                    }
                 }
             }
             else if (!rebuildFtsResult || string.Equals(CurrentTokenizerName, "unknown", StringComparison.Ordinal))
