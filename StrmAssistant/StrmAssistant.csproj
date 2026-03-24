@@ -70,7 +70,7 @@
     <ILRepackExe Condition="'$(ILRepackExe)'=='' and '$(UserProfile)'!=''">$(UserProfile)\.nuget\packages\ilrepack\2.0.42\tools\ILRepack.exe</ILRepackExe>
   </PropertyGroup>
 
-  <Target Name="PostBuildMerge" AfterTargets="Build">
+  <Target Name="PostBuildMerge" AfterTargets="Build" Condition="'$(TargetFramework)' != ''">
     <Message Importance="high" Text="StrmAssistant: build output dir -> $(StrmAssistantBuildOutputDir)" />
     <Message Importance="high" Text="StrmAssistant: ILRepack merge -> $(StrmAssistantMergedAssembly)" />
     <Message Importance="high" Text="StrmAssistant: ILRepack exe -> $(ILRepackExe)" />
