@@ -58,19 +58,17 @@
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
-    <!-- 合并输出默认写回 bin 目录，避免依赖特定系统路径 -->
-    <MergedPluginPath>$(TargetDir)$(TargetFileName)</MergedPluginPath>
     <!-- 可通过 /p:StrmAssistantPluginOutputDir=... 覆盖部署目录 -->
     <StrmAssistantPluginOutputDir Condition="'$(StrmAssistantPluginOutputDir)'=='' and '$(OS)'=='Windows_NT' and '$(APPDATA)'!=''">$(APPDATA)\Emby-Server\programdata\plugins</StrmAssistantPluginOutputDir>
   </PropertyGroup>
 
   <Target Name="PostBuildMerge" AfterTargets="Build">
-    <Message Importance="high" Text="StrmAssistant: ILRepack merge -> $(MergedPluginPath)" />
-    <Exec Command="&quot;$(ILRepack)&quot; /out:&quot;$(MergedPluginPath)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)0Harmony.dll&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)TinyPinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
+    <Message Importance="high" Text="StrmAssistant: ILRepack merge -> $(TargetPath)" />
+    <Exec Command="&quot;$(ILRepack)&quot; /out:&quot;$(TargetPath)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)0Harmony.dll&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)TinyPinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
 
     <MakeDir Condition="'$(StrmAssistantPluginOutputDir)'!=''" Directories="$(StrmAssistantPluginOutputDir)" />
     <Copy Condition="'$(StrmAssistantPluginOutputDir)'!=''"
-          SourceFiles="$(MergedPluginPath)"
+          SourceFiles="$(TargetPath)"
           DestinationFiles="$(StrmAssistantPluginOutputDir)\$(TargetFileName)"
           OverwriteReadOnlyFiles="true"
           SkipUnchangedFiles="false" />
