@@ -27,7 +27,7 @@
     </PackageReference>
     <PackageReference Include="Lib.Harmony" Version="2.3.6" />
     <PackageReference Include="mediabrowser.server.core" Version="4.9.1.90">
-      <!-- 当前支持4.9.1.90及更高版本 -->
+      <!-- 当前支持4.9.1.0及更高版本 -->
     </PackageReference>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
@@ -57,7 +57,24 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="$(ILRepack) /out:%25AppData%25\Emby-Server\programdata\plugins\$(TargetFileName) $(TargetPath) $(TargetDir)0Harmony.dll $(TargetDir)ChineseConverter.dll $(TargetDir)TinyPinyin.dll /lib:$(TargetDir)" />
+  <PropertyGroup>
+    <!-- 合并输出默认写回 bin 目录，避免依赖特定系统路径 -->
+    <MergedPluginPath>$(TargetDir)$(TargetFileName)</MergedPluginPath>
+    <!-- 可通过 /p:StrmAssistantPluginOutputDir=... 覆盖部署目录 -->
+    <StrmAssistantPluginOutputDir Condition="'$(StrmAssistantPluginOutputDir)'=='' and '$(OS)'=='Windows_NT' and '$(APPDATA)'!=''">$(APPDATA)\Emby-Server\programdata\plugins</StrmAssistantPluginOutputDir>
+  </PropertyGroup>
+
+  <Target Name="PostBuildMerge" AfterTargets="Build">
+    <Message Importance="high" Text="StrmAssistant: ILRepack merge -> $(MergedPluginPath)" />
+    <Exec Command="&quot;$(ILRepack)&quot; /out:&quot;$(MergedPluginPath)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)0Harmony.dll&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)TinyPinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
+
+    <MakeDir Condition="'$(StrmAssistantPluginOutputDir)'!=''" Directories="$(StrmAssistantPluginOutputDir)" />
+    <Copy Condition="'$(StrmAssistantPluginOutputDir)'!=''"
+          SourceFiles="$(MergedPluginPath)"
+          DestinationFiles="$(StrmAssistantPluginOutputDir)\$(TargetFileName)"
+          OverwriteReadOnlyFiles="true"
+          SkipUnchangedFiles="false" />
+    <Message Condition="'$(StrmAssistantPluginOutputDir)'!=''" Importance="high" Text="StrmAssistant: deployed merged plugin -> $(StrmAssistantPluginOutputDir)\$(TargetFileName)" />
+    <Message Condition="'$(StrmAssistantPluginOutputDir)'==''" Importance="normal" Text="StrmAssistant: skip auto-deploy (set /p:StrmAssistantPluginOutputDir=... if needed)." />
   </Target>
 </Project>

@@ -71,8 +71,6 @@ namespace StrmAssistant.Core
         private EmbyApiVersion DetermineApiVersion(Version version)
         {
             // 从高到低检查版本，确保准确匹配
-            if (version >= new Version("4.10.0.0"))
-                return EmbyApiVersion.V4_10_0;
             if (version >= new Version("4.9.2.0"))
                 return EmbyApiVersion.V4_9_2;
             if (version >= new Version("4.9.1.90"))
@@ -81,13 +79,7 @@ namespace StrmAssistant.Core
                 return EmbyApiVersion.V4_9_1_80;
             if (version >= new Version("4.9.1.0"))
                 return EmbyApiVersion.V4_9_1;
-            if (version >= new Version("4.9.0.0"))
-                return EmbyApiVersion.V4_9_0;
-            if (version >= new Version("4.8.3.0"))
-                return EmbyApiVersion.V4_8_3;
-            if (version >= new Version("4.8.0.0"))
-                return EmbyApiVersion.V4_8_0;
-            
+
             return EmbyApiVersion.Unknown;
         }
         
@@ -98,12 +90,12 @@ namespace StrmAssistant.Core
         {
             return featureName switch
             {
-                "IntroSkip" => _apiVersion >= EmbyApiVersion.V4_8_0,
-                "EpisodeGroups" => _apiVersion >= EmbyApiVersion.V4_9_0,
-                "EnhancedMediaInfo" => _apiVersion >= EmbyApiVersion.V4_9_1_80,
+                "IntroSkip" => _apiVersion >= EmbyApiVersion.V4_9_1,
+                "EpisodeGroups" => _apiVersion >= EmbyApiVersion.V4_9_1,
+                "EnhancedMediaInfo" => _apiVersion >= EmbyApiVersion.V4_9_1,
                 "AdvancedFingerprinting" => _apiVersion >= EmbyApiVersion.V4_9_1,
-                "OptimizedMediaSources" => _apiVersion >= EmbyApiVersion.V4_9_1_90,
-                "EnhancedNotifications" => _apiVersion >= EmbyApiVersion.V4_9_1_90,
+                "OptimizedMediaSources" => _apiVersion >= EmbyApiVersion.V4_9_1,
+                "EnhancedNotifications" => _apiVersion >= EmbyApiVersion.V4_9_1,
                 _ => false
             };
         }

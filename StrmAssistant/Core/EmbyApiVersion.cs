@@ -11,6 +11,21 @@ namespace StrmAssistant.Core
         /// 未知版本
         /// </summary>
         Unknown = 0,
+
+        /// <summary>
+        /// 4.8.0.x 兼容版本（保留给旧版适配代码）
+        /// </summary>
+        V4_8_0 = 4800,
+
+        /// <summary>
+        /// 4.8.3.x 兼容版本（保留给旧版适配代码）
+        /// </summary>
+        V4_8_3 = 4830,
+
+        /// <summary>
+        /// 4.9.0.x 兼容版本（保留给旧版适配代码）
+        /// </summary>
+        V4_9_0 = 4900,
         
         /// <summary>
         /// 4.9.1.0-79 中期版本
