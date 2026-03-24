@@ -60,11 +60,16 @@
   <PropertyGroup>
     <!-- 可通过 /p:StrmAssistantPluginOutputDir=... 覆盖部署目录 -->
     <StrmAssistantPluginOutputDir Condition="'$(StrmAssistantPluginOutputDir)'=='' and '$(OS)'=='Windows_NT' and '$(APPDATA)'!=''">$(APPDATA)\Emby-Server\programdata\plugins</StrmAssistantPluginOutputDir>
+
+    <!-- ILRepack 可执行文件：优先使用 NuGet 包目录，避免 $(ILRepack) 这类空属性 -->
+    <ILRepackExe Condition="'$(ILRepackExe)'=='' and '$(NuGetPackageRoot)'!=''">$(NuGetPackageRoot)ilrepack\2.0.42\tools\ILRepack.exe</ILRepackExe>
+    <ILRepackExe Condition="'$(ILRepackExe)'=='' and '$(UserProfile)'!=''">$(UserProfile)\.nuget\packages\ilrepack\2.0.42\tools\ILRepack.exe</ILRepackExe>
   </PropertyGroup>
 
   <Target Name="PostBuildMerge" AfterTargets="Build">
     <Message Importance="high" Text="StrmAssistant: ILRepack merge -> $(TargetPath)" />
-    <Exec Command="&quot;$(ILRepack)&quot; /out:&quot;$(TargetPath)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)0Harmony.dll&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)TinyPinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
+    <Message Importance="high" Text="StrmAssistant: ILRepack exe -> $(ILRepackExe)" />
+    <Exec Command="&quot;$(ILRepackExe)&quot; /out:&quot;$(TargetPath)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)0Harmony.dll&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)TinyPinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
 
     <MakeDir Condition="'$(StrmAssistantPluginOutputDir)'!=''" Directories="$(StrmAssistantPluginOutputDir)" />
     <Copy Condition="'$(StrmAssistantPluginOutputDir)'!=''"
