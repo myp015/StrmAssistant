@@ -5,7 +5,7 @@
 ### 🔧 修复与调整
 - ARM64 下所有 `Harmony not implemented on this arm64 target` 日志降级为 **Debug** 输出，避免常规日志刷屏。
 - 版本号更新为 `26.3.25`（程序集版本 `26.3.25.0`）。
-- 更新抑制逻辑改为仅屏蔽本插件（StrmAssistant/StrmAssistantLite）更新提示，不再提供全局 `*`/`all` 屏蔽。
+- 移除 `SuppressPluginUpdate` 相关功能，不再拦截或屏蔽插件更新列表。
 - 运行要求明确为 **仅支持 Emby 4.9.1.0 及以上版本**。
 
 ## [2.2.0] - 2024-12-03
@@ -136,7 +136,7 @@
 
 1. **备份配置**: 建议先备份现有配置
 2. **停止Emby服务**: `systemctl stop emby-server` 或通过服务管理器停止
-3. **替换插件文件**: 替换 `StrmAssistantLite.dll`
+3. **替换插件文件**: 替换 `StrmAssistant.dll`
 4. **启动Emby服务**: 重新启动Emby服务
 5. **检查日志**: 查看日志确认新架构初始化成功
 

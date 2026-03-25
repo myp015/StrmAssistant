@@ -39,7 +39,6 @@ namespace StrmAssistant.Mod
         public static NoBoxsetsAutoCreation NoBoxsetsAutoCreation;
         public static EnhanceNotificationSystem EnhanceNotificationSystem;
         public static EnableDeepDelete EnableDeepDelete;
-        public static SuppressPluginUpdate SuppressPluginUpdate;
 
         private static readonly ConcurrentDictionary<Tuple<Type, string>, HarmonyMethod> HarmonyMethodCache 
             = new ConcurrentDictionary<Tuple<Type, string>, HarmonyMethod>();
@@ -94,7 +93,6 @@ namespace StrmAssistant.Mod
             NoBoxsetsAutoCreation = new NoBoxsetsAutoCreation();
             EnhanceNotificationSystem = new EnhanceNotificationSystem();
             EnableDeepDelete = new EnableDeepDelete();
-            SuppressPluginUpdate = new SuppressPluginUpdate();
         }
 
         public static bool IsPatched(MethodBase methodInfo, Type type)
@@ -132,7 +130,6 @@ namespace StrmAssistant.Mod
             {
                 typeof(EnhanceChineseSearch),
                 typeof(PreferOriginalPoster),
-                typeof(SuppressPluginUpdate),
                 typeof(ChineseTvdb),
                 typeof(NoBoxsetsAutoCreation),
                 typeof(EnableImageCapture),

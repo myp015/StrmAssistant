@@ -560,7 +560,7 @@ namespace StrmAssistant
 
         public override Guid Id => _id;
 
-        public sealed override string Name => "Strm Assistant";
+        public sealed override string Name => "StrmAssistant";
 
         public string CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version?.ToString();
 

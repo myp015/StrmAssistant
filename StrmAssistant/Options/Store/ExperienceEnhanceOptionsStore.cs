@@ -87,12 +87,6 @@ namespace StrmAssistant.Options.Store
                     }
                 }
 
-                // SuppressPluginUpdate is now always-on and self-scoped only.
-                // Keep this no-op block for backward compatibility with persisted configs.
-                if (changedProperties.Contains(nameof(ExperienceEnhanceOptions.SuppressPluginUpdates)))
-                {
-                }
-
                 if (changedProperties.Contains(nameof(ExperienceEnhanceOptions.UIFunctionOptions.HidePersonNoImage)))
                 {
                     if (options.UIFunctionOptions.HidePersonNoImage)

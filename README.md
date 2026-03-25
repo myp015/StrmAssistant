@@ -84,7 +84,7 @@ dotnet restore
 dotnet build -c Release
 ```
 
-构建产物位于: `StrmAssistant/bin/Release/net6.0/StrmAssistantLite.dll`
+构建产物位于: `StrmAssistant/bin/Release/net6.0/StrmAssistant.dll`
 
 
 ## 声明

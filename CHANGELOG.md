@@ -128,7 +128,7 @@
 
 1. **备份配置**: 建议先备份现有配置
 2. **停止Emby服务**: `systemctl stop emby-server` 或通过服务管理器停止
-3. **替换插件文件**: 替换 `StrmAssistantLite.dll`
+3. **替换插件文件**: 替换 `StrmAssistant.dll`
 4. **启动Emby服务**: 重新启动Emby服务
 5. **检查日志**: 查看日志确认新架构初始化成功
 

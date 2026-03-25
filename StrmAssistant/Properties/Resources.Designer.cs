@@ -371,25 +371,6 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Plugin names separated by comma or semicolon like MovieDb,Tvdb. Default is BLANK..
-        /// </summary>
-        public static string ExperienceEnhanceOptions_SuppressPluginUpdates_Plugin_names_separated_by_comma_or_semicolon_like_MovieDb_Tvdb__Default_is_BLANK_ {
-            get {
-                return ResourceManager.GetString("ExperienceEnhanceOptions_SuppressPluginUpdates_Plugin_names_separated_by_comma_or" +
-                        "_semicolon_like_MovieDb_Tvdb__Default_is_BLANK_", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Suppress Plugin Auto Updates.
-        /// </summary>
-        public static string ExperienceEnhanceOptions_SuppressPluginUpdates_Suppress_Auto_Plugin_Updates {
-            get {
-                return ResourceManager.GetString("ExperienceEnhanceOptions_SuppressPluginUpdates_Suppress_Auto_Plugin_Updates", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Extracts intro fingerprint from episodes.
         /// </summary>
         public static string ExtractIntroFingerprintTask_Description_Extracts_intro_fingerprint_from_episodes {
@@ -1681,7 +1662,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Strm Assistant.
+        ///   Looks up a localized string similar to StrmAssistant.
         /// </summary>
         public static string PluginOptions_EditorTitle_Strm_Assistant {
             get {

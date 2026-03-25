@@ -1,4 +1,4 @@
-# Emby Strm Assistant
+# Emby StrmAssistant
 
 ![logo](StrmAssistant/Properties/thumb.png "logo")
 

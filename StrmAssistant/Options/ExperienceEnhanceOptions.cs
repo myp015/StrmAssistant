@@ -73,9 +73,6 @@ namespace StrmAssistant.Options
         [Required]
         public bool EnableDeepDelete { get; set; } = false;
 
-        [Browsable(false)]
-        public string SuppressPluginUpdates { get; set; } = "";
-
         [DisplayNameL("UIFunctionOptions_EditorTitle_UI_Functions", typeof(Resources))]
         public UIFunctionOptions UIFunctionOptions { get; set; } = new UIFunctionOptions();
 
