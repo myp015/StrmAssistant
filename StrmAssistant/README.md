@@ -2,9 +2,9 @@
 
 ![logo](StrmAssistant/Properties/thumb.png "logo")
 
-## 基于社区版，使用AI进行对最新版Emby进行适配，有问题不解决，请转至[[Pro版本]](https://github.com/sjtuross/StrmAssistant)
+## 基于社区版，使用AI进行对最新版Emby进行适配，有问题不解决，请转至[Pro版本](https://github.com/sjtuross/StrmAssistant)
 
-## [[English]](README.en.md)
+## [English](README.en.md)
 
 ## 版本信息
 

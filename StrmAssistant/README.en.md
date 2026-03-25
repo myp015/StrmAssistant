@@ -4,7 +4,7 @@
 
 ## Community Edition - AI-Optimized for Latest Emby
 
-## [[中文]](README.md)
+## [中文](README.md)
 
 ## Purpose
 
