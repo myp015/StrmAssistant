@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using static StrmAssistant.Mod.PatchManager;
 using static StrmAssistant.Options.Utility;
@@ -33,7 +34,7 @@ namespace StrmAssistant.Mod
         private static string _tokenizerPath;
         private static readonly object _lock = new object();
         private static bool _patchPhase2Initialized;
-        private static readonly string RebuildMarkerPath = Path.Combine(Plugin.Instance.ApplicationPaths.TempDirectory, "strmassistant_chinese_search_rebuild.pending");
+        private static readonly string RebuildMarkerPath = Path.Combine(Plugin.Instance.ApplicationPaths.PluginConfigurationsPath, "strmassistant_chinese_search_rebuild.pending");
         private static readonly Dictionary<string, Regex> patterns = new Dictionary<string, Regex>
         {
             { "imdb", new Regex(@"^tt\d{7,8}$", RegexOptions.IgnoreCase | RegexOptions.Compiled) },
@@ -256,9 +257,15 @@ namespace StrmAssistant.Mod
 
                 Plugin.Instance.Logger.Info("EnhanceChineseSearch - Current tokenizer (before) is " + CurrentTokenizerName);
 
-                if (!string.Equals(CurrentTokenizerName, "unknown", StringComparison.Ordinal))
+                var tokenizerUnknown = string.Equals(CurrentTokenizerName, "unknown", StringComparison.Ordinal);
+
+                if (Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearchRestore)
                 {
-                    if (Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearchRestore)
+                    if (tokenizerUnknown)
+                    {
+                        Plugin.Instance.Logger.Warn("EnhanceChineseSearch: tokenizer state unknown, skip restore for safety");
+                    }
+                    else
                     {
                         if (string.Equals(CurrentTokenizerName, "simple", StringComparison.Ordinal))
                         {
@@ -269,44 +276,44 @@ namespace StrmAssistant.Mod
                             CurrentTokenizerName = "unicode61 remove_diacritics 2";
                             Plugin.Instance.Logger.Info("EnhanceChineseSearch - Restore Success");
                         }
-                        ResetOptions();
                     }
-                    else if (Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearch)
-                    {
-                        patchSearchFunctionsResult = PatchSearchFunctions();
+                    ResetOptions();
+                }
+                else if (Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearch)
+                {
+                    patchSearchFunctionsResult = PatchSearchFunctions();
 
-                        if (patchSearchFunctionsResult)
+                    if (patchSearchFunctionsResult)
+                    {
+                        // 升级场景：本次启动仅做标记，下次重启再自动重建，避免升级当次破坏数据库
+                        if (tokenizerUnknown)
                         {
-                            // 升级场景：本次启动仅做标记，下次重启再自动重建，避免升级当次破坏数据库
-                            if (CurrentTokenizerName == "unknown")
+                            ScheduleRebuildOnNextRestart();
+                            Plugin.Instance.Logger.Warn("EnhanceChineseSearch: tokenizer state unknown, rebuild scheduled for next restart");
+                        }
+                        else if (string.Equals(CurrentTokenizerName, "unicode61 remove_diacritics 2", StringComparison.Ordinal))
+                        {
+                            // 已是新版 tokenizer；如有计划重建标记，执行重建
+                            if (HasScheduledRebuild())
                             {
-                                ScheduleRebuildOnNextRestart();
-                                Plugin.Instance.Logger.Warn("EnhanceChineseSearch: tokenizer state unknown, rebuild scheduled for next restart");
-                            }
-                            else if (string.Equals(CurrentTokenizerName, "unicode61 remove_diacritics 2", StringComparison.Ordinal))
-                            {
-                                // 已是新版 tokenizer；如有计划重建标记，执行重建
-                                if (HasScheduledRebuild())
+                                rebuildFtsResult = RebuildFts(connection, ftsTableName, "simple");
+                                if (rebuildFtsResult)
                                 {
-                                    rebuildFtsResult = RebuildFts(connection, ftsTableName, "simple");
-                                    if (rebuildFtsResult)
-                                    {
-                                        ClearScheduledRebuild();
-                                        CurrentTokenizerName = "simple";
-                                        Plugin.Instance.Logger.Info("EnhanceChineseSearch - Scheduled rebuild completed");
-                                    }
-                                }
-                                else
-                                {
-                                    Plugin.Instance.Logger.Info("EnhanceChineseSearch: tokenizer already upgraded, skipping rebuild");
+                                    ClearScheduledRebuild();
+                                    CurrentTokenizerName = "simple";
+                                    Plugin.Instance.Logger.Info("EnhanceChineseSearch - Scheduled rebuild completed");
                                 }
                             }
                             else
                             {
-                                // 当前是 simple，说明已经开启；保持状态即可
-                                CurrentTokenizerName = "simple";
-                                Plugin.Instance.Logger.Info("EnhanceChineseSearch - Load Success (search patches active)");
+                                Plugin.Instance.Logger.Info("EnhanceChineseSearch: tokenizer already upgraded, skipping rebuild");
                             }
+                        }
+                        else
+                        {
+                            // 当前是 simple，说明已经开启；保持状态即可
+                            CurrentTokenizerName = "simple";
+                            Plugin.Instance.Logger.Info("EnhanceChineseSearch - Load Success (search patches active)");
                         }
                     }
                 }

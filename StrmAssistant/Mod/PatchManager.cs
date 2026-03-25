@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace StrmAssistant.Mod
 {
@@ -44,6 +45,8 @@ namespace StrmAssistant.Mod
             = new ConcurrentDictionary<Tuple<Type, string>, HarmonyMethod>();
         private static readonly ConcurrentDictionary<Tuple<Type, string>, MethodInfo> MethodInfoCache 
             = new ConcurrentDictionary<Tuple<Type, string>, MethodInfo>();
+
+        public static bool IsArm64 => RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
 
         public static void Initialize()
         {
