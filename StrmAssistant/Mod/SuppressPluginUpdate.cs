@@ -19,12 +19,7 @@ namespace StrmAssistant.Mod
         {
             Initialize();
 
-            var suppressPluginUpdates = Plugin.Instance.ExperienceEnhanceStore.GetOptions().SuppressPluginUpdates;
-
-            if (!string.IsNullOrWhiteSpace(suppressPluginUpdates))
-            {
-                Patch();
-            }
+            Patch();
         }
 
         protected override void OnInitialize()
@@ -156,6 +151,11 @@ namespace StrmAssistant.Mod
                 Plugin.Instance.ExperienceEnhanceStore.GetOptions().SuppressPluginUpdates
                     .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(p => p.Trim()), StringComparer.OrdinalIgnoreCase);
+
+            if (suppressPluginUpdates.Contains("*") || suppressPluginUpdates.Contains("all"))
+            {
+                return Task.FromResult(Array.Empty<PackageVersionInfo>());
+            }
 
             result = result.Where(p =>
                     !suppressPluginUpdates.Contains(p.name) &&

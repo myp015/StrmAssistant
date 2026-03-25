@@ -301,9 +301,9 @@ namespace StrmAssistant.Mod
                 // arm64 下大量 ReversePatch 会抛 NotImplementedException，属于可预期行为：降级为信息日志，避免刷屏告警
                 if (IsArm64 && isNotImplemented)
                 {
-                    Plugin.Instance.Logger.Info($"{tracker.PatchType.Name} ReversePatch: Harmony not implemented on this arm64 target, using Reflection fallback");
                     if (Plugin.Instance.DebugMode)
                     {
+                        Plugin.Instance.Logger.Debug($"{tracker.PatchType.Name} ReversePatch: Harmony not implemented on this arm64 target, using Reflection fallback");
                         Plugin.Instance.Logger.Debug($"  Method: {methodName}");
                     }
 
@@ -444,9 +444,9 @@ namespace StrmAssistant.Mod
                 if (IsArm64 && isNotImplemented)
                 {
                     tracker.FallbackPatchApproach = PatchApproach.Reflection;
-                    Plugin.Instance.Logger.Info($"{tracker.PatchType.Name} Patch: Harmony not implemented on this arm64 target, using Reflection fallback");
                     if (Plugin.Instance.DebugMode)
                     {
+                        Plugin.Instance.Logger.Debug($"{tracker.PatchType.Name} Patch: Harmony not implemented on this arm64 target, using Reflection fallback");
                         Plugin.Instance.Logger.Debug($"  Target: {methodName}");
                     }
                     Plugin.Instance.Logger.Info($"{tracker.PatchType.Name} will use Reflection approach as fallback");

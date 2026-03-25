@@ -76,7 +76,7 @@ namespace StrmAssistant.Options
         [DisplayNameL("ExperienceEnhanceOptions_SuppressPluginUpdates_Suppress_Auto_Plugin_Updates", typeof(Resources))]
         [DescriptionL("ExperienceEnhanceOptions_SuppressPluginUpdates_Plugin_names_separated_by_comma_or_semicolon_like_MovieDb_Tvdb__Default_is_BLANK_", typeof(Resources))]
         [EnabledCondition(nameof(IsModSupported), SimpleCondition.IsTrue)]
-        public string SuppressPluginUpdates { get; set; } = string.Empty;
+        public string SuppressPluginUpdates { get; set; } = "*";
 
         [DisplayNameL("UIFunctionOptions_EditorTitle_UI_Functions", typeof(Resources))]
         public UIFunctionOptions UIFunctionOptions { get; set; } = new UIFunctionOptions();
