@@ -308,7 +308,7 @@ namespace StrmAssistant.Mod
                     }
 
                     tracker.FallbackPatchApproach = PatchApproach.Reflection;
-                    Plugin.Instance.Logger.Info($"{tracker.PatchType.Name} will use Reflection approach as fallback (this is normal and expected)");
+                    Plugin.Instance.Logger.Debug($"{tracker.PatchType.Name} will use Reflection approach as fallback (this is normal and expected)");
                     return false;
                 }
                 
@@ -372,7 +372,7 @@ namespace StrmAssistant.Mod
                 
                 if (!isKnownLimitation)
                 {
-                    Plugin.Instance.Logger.Info($"{tracker.PatchType.Name} will use Reflection approach as fallback (this is normal and expected)");
+                    Plugin.Instance.Logger.Debug($"{tracker.PatchType.Name} will use Reflection approach as fallback (this is normal and expected)");
                 }
             }
 
@@ -449,7 +449,7 @@ namespace StrmAssistant.Mod
                         Plugin.Instance.Logger.Debug($"{tracker.PatchType.Name} Patch: Harmony not implemented on this arm64 target, using Reflection fallback");
                         Plugin.Instance.Logger.Debug($"  Target: {methodName}");
                     }
-                    Plugin.Instance.Logger.Info($"{tracker.PatchType.Name} will use Reflection approach as fallback");
+                    Plugin.Instance.Logger.Debug($"{tracker.PatchType.Name} will use Reflection approach as fallback");
                     return false;
                 }
                 
@@ -502,7 +502,7 @@ namespace StrmAssistant.Mod
                 
                 if (canFallbackToReflection)
                 {
-                    Plugin.Instance.Logger.Info($"{tracker.PatchType.Name} will use Reflection approach as fallback");
+                    Plugin.Instance.Logger.Debug($"{tracker.PatchType.Name} will use Reflection approach as fallback");
                 }
                 else
                 {
