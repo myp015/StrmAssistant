@@ -4,12 +4,16 @@
 
 ## Community Edition - AI-Optimized for Latest Emby
 
-## [[中文]](README.md) Improve initial playback start speed
-2. Image capture and thumbnail preview enhanced
-3. Playback behavior-based intro and credits detection
-4. Independent external subtitle scan
+## [中文](README.md)
 
-## Latest Optimizations (v2.2.0)
+## Purpose
+
+1. Improve initial playback start speed
+2. Enhance image capture and thumbnail preview
+3. Intro/credits detection based on playback behavior
+4. Independent external subtitle scanning
+
+## Latest Optimizations (v26.3.25)
 
 ✅ **Complete Architecture Refactoring**
 - New `EmbyVersionAdapter` for intelligent version detection and adaptation
@@ -19,7 +23,7 @@
 ✅ **Full Support for Emby 4.9.1.90**
 - Optimized API calls specifically for version 4.9.1.90
 - Support for latest MediaSources and notification system enhancements
-- Backward compatible with 4.8.x and 4.9.0.x versions
+- Supports Emby 4.9.1 and above only
 
 ✅ **Enhanced Error Handling**
 - More detailed diagnostic logging and error tracking
@@ -45,8 +49,8 @@
 
 ## Version Info
 
-- **Plugin Version**: 2.2.0.0
-- **Minimum Emby Version**: 4.8.0.0
+- **Plugin Version**: 26.3.25
+- **Minimum Emby Version**: 4.9.1
 - **Recommended Emby Version**: 4.9.1.90 or higher
 - **Tested On**: 4.9.1.90
 - **Target Framework**: .NET 6.0
