@@ -73,10 +73,8 @@ namespace StrmAssistant.Options
         [Required]
         public bool EnableDeepDelete { get; set; } = false;
 
-        [DisplayNameL("ExperienceEnhanceOptions_SuppressPluginUpdates_Suppress_Auto_Plugin_Updates", typeof(Resources))]
-        [DescriptionL("ExperienceEnhanceOptions_SuppressPluginUpdates_Plugin_names_separated_by_comma_or_semicolon_like_MovieDb_Tvdb__Default_is_BLANK_", typeof(Resources))]
-        [EnabledCondition(nameof(IsModSupported), SimpleCondition.IsTrue)]
-        public string SuppressPluginUpdates { get; set; } = "*";
+        [Browsable(false)]
+        public string SuppressPluginUpdates { get; set; } = "";
 
         [DisplayNameL("UIFunctionOptions_EditorTitle_UI_Functions", typeof(Resources))]
         public UIFunctionOptions UIFunctionOptions { get; set; } = new UIFunctionOptions();

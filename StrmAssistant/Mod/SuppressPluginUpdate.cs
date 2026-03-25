@@ -19,6 +19,7 @@ namespace StrmAssistant.Mod
         {
             Initialize();
 
+            // Always patch: only this plugin's own update entry is filtered.
             Patch();
         }
 
@@ -147,19 +148,16 @@ namespace StrmAssistant.Mod
 
             if (result is null) return Task.FromResult(Array.Empty<PackageVersionInfo>());
 
-            var suppressPluginUpdates = new HashSet<string>(
-                Plugin.Instance.ExperienceEnhanceStore.GetOptions().SuppressPluginUpdates
-                    .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(p => p.Trim()), StringComparer.OrdinalIgnoreCase);
-
-            if (suppressPluginUpdates.Contains("*") || suppressPluginUpdates.Contains("all"))
+            // Restrict suppression to this plugin only (StrmAssistant / StrmAssistantLite).
+            var selfNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
-                return Task.FromResult(Array.Empty<PackageVersionInfo>());
-            }
+                "StrmAssistant",
+                "StrmAssistantLite"
+            };
 
             result = result.Where(p =>
-                    !suppressPluginUpdates.Contains(p.name) &&
-                    !suppressPluginUpdates.Contains(Path.GetFileNameWithoutExtension(p.targetFilename)))
+                    !selfNames.Contains(p.name) &&
+                    !selfNames.Contains(Path.GetFileNameWithoutExtension(p.targetFilename)))
                 .ToArray();
 
             return Task.FromResult(result);
