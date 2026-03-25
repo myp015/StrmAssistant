@@ -295,6 +295,22 @@ namespace StrmAssistant.Mod
                 var methodName = targetMethod.DeclaringType != null ? $"{targetMethod.DeclaringType.Name}.{targetMethod.Name}" : targetMethod.Name;
                 var exceptionType = he.GetType().Name;
                 var exceptionMessage = he.Message;
+                var isNotImplemented = he is NotImplementedException ||
+                                       string.Equals(exceptionMessage, "The method or operation is not implemented.", StringComparison.Ordinal);
+
+                // arm64 下大量 ReversePatch 会抛 NotImplementedException，属于可预期行为：降级为信息日志，避免刷屏告警
+                if (IsArm64 && isNotImplemented)
+                {
+                    Plugin.Instance.Logger.Info($"{tracker.PatchType.Name} ReversePatch: Harmony not implemented on this arm64 target, using Reflection fallback");
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        Plugin.Instance.Logger.Debug($"  Method: {methodName}");
+                    }
+
+                    tracker.FallbackPatchApproach = PatchApproach.Reflection;
+                    Plugin.Instance.Logger.Info($"{tracker.PatchType.Name} will use Reflection approach as fallback (this is normal and expected)");
+                    return false;
+                }
                 
                 // 针对特定错误类型提供更详细的说明
                 string detailedMessage = exceptionMessage;
@@ -422,6 +438,20 @@ namespace StrmAssistant.Mod
             catch (Exception he)
             {
                 var methodName = targetMethod.DeclaringType != null ? $"{targetMethod.DeclaringType.Name}.{targetMethod.Name}" : targetMethod.Name;
+                var isNotImplemented = he is NotImplementedException ||
+                                       string.Equals(he.Message, "The method or operation is not implemented.", StringComparison.Ordinal);
+
+                if (IsArm64 && isNotImplemented)
+                {
+                    tracker.FallbackPatchApproach = PatchApproach.Reflection;
+                    Plugin.Instance.Logger.Info($"{tracker.PatchType.Name} Patch: Harmony not implemented on this arm64 target, using Reflection fallback");
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        Plugin.Instance.Logger.Debug($"  Target: {methodName}");
+                    }
+                    Plugin.Instance.Logger.Info($"{tracker.PatchType.Name} will use Reflection approach as fallback");
+                    return false;
+                }
                 
                 // 检测常见错误类型并提供更好的诊断信息
                 bool canFallbackToReflection = true;
