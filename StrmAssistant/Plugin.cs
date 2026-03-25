@@ -69,7 +69,7 @@ namespace StrmAssistant
         public static MetadataApi MetadataApi { get; private set; }
         public static VideoThumbnailApi VideoThumbnailApi { get; private set; }
 
-        private readonly Guid _id = new Guid("f2eaee96-8cf4-424d-b5f8-89b3d5935cbc");
+        private readonly Guid _id = new Guid("63c322b7-a371-41a3-b11f-04f8418b37d8");
 
         public readonly ILogger Logger;
         public readonly IApplicationHost ApplicationHost;
