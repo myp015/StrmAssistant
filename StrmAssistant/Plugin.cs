@@ -517,9 +517,54 @@ namespace StrmAssistant
             {
                 var configDir = ApplicationPaths.PluginConfigurationsPath;
                 Directory.CreateDirectory(configDir);
-                var markerPath = Path.Combine(configDir,
-                    $"{Name}_chinese_search_migrated_2_2_0.flag");
-                if (File.Exists(markerPath)) return;
+
+                var legacyMarkerPath = Path.Combine(configDir, $"{Name}_chinese_search_migrated_2_2_0.flag");
+                var versionMarkerPath = Path.Combine(configDir, $"{Name}_chinese_search_last_seen_version.txt");
+
+                var currentVersionText = CurrentVersion ?? "0.0.0.0";
+                if (!Version.TryParse(currentVersionText, out var currentVersion))
+                {
+                    currentVersion = new Version(0, 0, 0, 0);
+                }
+
+                var hasLegacyMarker = File.Exists(legacyMarkerPath);
+                var hasVersionMarker = File.Exists(versionMarkerPath);
+                var previousVersionText = hasVersionMarker ? File.ReadAllText(versionMarkerPath).Trim() : string.Empty;
+
+                Version previousVersion = null;
+                if (!string.IsNullOrWhiteSpace(previousVersionText) && Version.TryParse(previousVersionText, out var parsedPrevious))
+                {
+                    previousVersion = parsedPrevious;
+                }
+
+                Logger.Info(
+                    $"EnhanceChineseSearch upgrade-check: current={currentVersion}, previous={(previousVersion?.ToString() ?? "<none>")}, legacyMarker={hasLegacyMarker}, versionMarker={hasVersionMarker}");
+
+                // 首次安装/首次引入版本比较策略：仅记录版本，不执行自动禁用。
+                if (previousVersion is null)
+                {
+                    File.WriteAllText(versionMarkerPath, currentVersion.ToString());
+
+                    if (!hasLegacyMarker)
+                    {
+                        File.WriteAllText(legacyMarkerPath, DateTime.UtcNow.ToString("O"));
+                    }
+
+                    Logger.Info("EnhanceChineseSearch upgrade-check: baseline initialized, no auto-disable on first run.");
+                    return;
+                }
+
+                var isUpgrade = currentVersion > previousVersion;
+                if (!isUpgrade)
+                {
+                    if (currentVersion < previousVersion)
+                    {
+                        Logger.Warn($"EnhanceChineseSearch upgrade-check: detected downgrade {previousVersion} -> {currentVersion}; keep current option state.");
+                    }
+
+                    File.WriteAllText(versionMarkerPath, currentVersion.ToString());
+                    return;
+                }
 
                 var options = MainOptionsStore.GetOptions();
                 var changed = false;
@@ -539,10 +584,19 @@ namespace StrmAssistant
                 if (changed)
                 {
                     MainOptionsStore.SavePluginOptionsSuppress();
-                    Logger.Info("EnhanceChineseSearch has been disabled after upgrade. User must re-enable it manually to trigger rebuild.");
+                    Logger.Info(
+                        $"EnhanceChineseSearch has been disabled after upgrade ({previousVersion} -> {currentVersion}). User must re-enable it manually to trigger rebuild.");
+                }
+                else
+                {
+                    Logger.Info($"EnhanceChineseSearch upgrade-check: no disable needed for upgrade {previousVersion} -> {currentVersion}.");
                 }
 
-                File.WriteAllText(markerPath, DateTime.UtcNow.ToString("O"));
+                File.WriteAllText(versionMarkerPath, currentVersion.ToString());
+                if (!hasLegacyMarker)
+                {
+                    File.WriteAllText(legacyMarkerPath, DateTime.UtcNow.ToString("O"));
+                }
             }
             catch (Exception ex)
             {

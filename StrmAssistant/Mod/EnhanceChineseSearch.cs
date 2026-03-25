@@ -285,36 +285,63 @@ namespace StrmAssistant.Mod
 
                     if (patchSearchFunctionsResult)
                     {
-                        // 升级场景：本次启动仅做标记，下次重启再自动重建，避免升级当次破坏数据库
+                        var hasScheduledRebuild = HasScheduledRebuild();
+                        var tokenizerIsSimple = string.Equals(CurrentTokenizerName, "simple", StringComparison.Ordinal);
+
+                        Plugin.Instance.Logger.Info(
+                            $"EnhanceChineseSearch - Phase2 state: tokenizer='{CurrentTokenizerName}', scheduledRebuild={hasScheduledRebuild}");
+
                         if (tokenizerUnknown)
                         {
                             ScheduleRebuildOnNextRestart();
                             Plugin.Instance.Logger.Warn("EnhanceChineseSearch: tokenizer state unknown, rebuild scheduled for next restart");
                         }
-                        else if (string.Equals(CurrentTokenizerName, "unicode61 remove_diacritics 2", StringComparison.Ordinal))
+                        else if (!tokenizerIsSimple)
                         {
-                            // 已是新版 tokenizer；如有计划重建标记，执行重建
-                            if (HasScheduledRebuild())
+                            // 关键修复：只要当前不是 simple，就必须重建到 simple。
+                            // 不再仅凭 tokenizer 二进制版本判断“已升级”。
+                            if (!hasScheduledRebuild)
                             {
-                                rebuildFtsResult = RebuildFts(connection, ftsTableName, "simple");
-                                if (rebuildFtsResult)
-                                {
-                                    ClearScheduledRebuild();
-                                    CurrentTokenizerName = "simple";
-                                    Plugin.Instance.Logger.Info("EnhanceChineseSearch - Scheduled rebuild completed");
-                                }
+                                ScheduleRebuildOnNextRestart();
+                                Plugin.Instance.Logger.Info(
+                                    "EnhanceChineseSearch: tokenizer is not 'simple'; force rebuild to simple and mark retry on next restart if it fails");
                             }
                             else
                             {
-                                Plugin.Instance.Logger.Info("EnhanceChineseSearch: tokenizer already upgraded, skipping rebuild");
+                                Plugin.Instance.Logger.Info(
+                                    "EnhanceChineseSearch: scheduled rebuild marker exists; executing rebuild to tokenizer 'simple'");
+                            }
+
+                            rebuildFtsResult = RebuildFts(connection, ftsTableName, "simple");
+                            if (rebuildFtsResult)
+                            {
+                                ClearScheduledRebuild();
+                                CurrentTokenizerName = "simple";
+                                Plugin.Instance.Logger.Info("EnhanceChineseSearch - Rebuild to tokenizer 'simple' completed");
+                            }
+                            else
+                            {
+                                Plugin.Instance.Logger.Warn(
+                                    "EnhanceChineseSearch - Rebuild to tokenizer 'simple' failed; marker kept for next restart retry");
                             }
                         }
                         else
                         {
-                            // 当前是 simple，说明已经开启；保持状态即可
+                            // 当前已经是 simple，功能处于启用态
                             CurrentTokenizerName = "simple";
+                            if (hasScheduledRebuild)
+                            {
+                                ClearScheduledRebuild();
+                                Plugin.Instance.Logger.Info(
+                                    "EnhanceChineseSearch: tokenizer already 'simple'; cleared stale scheduled rebuild marker");
+                            }
+
                             Plugin.Instance.Logger.Info("EnhanceChineseSearch - Load Success (search patches active)");
                         }
+                    }
+                    else
+                    {
+                        Plugin.Instance.Logger.Warn("EnhanceChineseSearch: PatchSearchFunctions returned false");
                     }
                 }
 
