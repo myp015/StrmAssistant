@@ -27,13 +27,19 @@ namespace StrmAssistant.Options
         [Browsable(false)]
         public string GitHubProxy { get; set; } = string.Empty;
         
+        private static string NormalizeVersion(string version)
+        {
+            if (string.IsNullOrWhiteSpace(version)) return version;
+            return version.EndsWith(".0") ? version.Substring(0, version.Length - 2) : version;
+        }
+
         private static string GetVersionHash()
         {
             var assembly = Assembly.GetExecutingAssembly();
             var informationalVersion = assembly
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 
-            var fullVersion = assembly.GetName().Version?.ToString();
+            var fullVersion = NormalizeVersion(assembly.GetName().Version?.ToString());
 
             if (informationalVersion != null)
             {
