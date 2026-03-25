@@ -135,18 +135,23 @@ namespace StrmAssistant.Mod
         [HarmonyPostfix]
         private static Task<PackageVersionInfo[]> GetAvailablePluginUpdatesPostfix(Task<PackageVersionInfo[]> __result)
         {
-            PackageVersionInfo[] result = null;
-
-            try
+            if (__result is null)
             {
-                result = __result?.Result;
-            }
-            catch
-            {
-                // ignored
+                return Task.FromResult(Array.Empty<PackageVersionInfo>());
             }
 
-            if (result is null) return Task.FromResult(Array.Empty<PackageVersionInfo>());
+            // Preserve original task behavior when it's not successfully completed
+            // to avoid swallowing exceptions/cancellation and hiding all updates.
+            if (!__result.IsCompletedSuccessfully)
+            {
+                return __result;
+            }
+
+            var result = __result.Result;
+            if (result is null)
+            {
+                return Task.FromResult(Array.Empty<PackageVersionInfo>());
+            }
 
             // Restrict suppression to this plugin only (StrmAssistant / StrmAssistantLite).
             var selfNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
