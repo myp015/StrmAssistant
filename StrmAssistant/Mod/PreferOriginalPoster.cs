@@ -139,7 +139,11 @@ namespace StrmAssistant.Mod
                 }
                 _getLocalFiles = localImageProvider.GetMethod("GetFiles",
                     BindingFlags.Instance | BindingFlags.NonPublic,
-                    new[] { typeof(BaseItem), typeof(LibraryOptions), typeof(bool), typeof(IDirectoryService) });
+                    new[]
+                    {
+                        typeof(BaseItem), typeof(LibraryOptions), typeof(bool), typeof(IDirectoryService),
+                        typeof(CancellationToken)
+                    });
                 if (_getLocalFiles != null)
                 {
                     ReversePatch(PatchTracker, _getLocalFiles, nameof(GetLocalFilesStub), suppressWarnings: false);
@@ -467,8 +471,11 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyReversePatch]
+        // ★ 4.9/4.10 兼容修复：真实签名 GetFiles(BaseItem, LibraryOptions, bool, IDirectoryService, CancellationToken)
+        //   为 5 参数（含 cancellationToken）；旧 stub 只有 4 参数 → 与真实签名不匹配 → ReversePatch 无法生成。
         private static FileSystemMetadata[] GetLocalFilesStub(ILocalImageFileProvider instance, BaseItem item,
-            LibraryOptions libraryOptions, bool includeDirectories, IDirectoryService directoryService) =>
+            LibraryOptions libraryOptions, bool includeDirectories, IDirectoryService directoryService,
+            CancellationToken cancellationToken) =>
             throw new NotImplementedException();
 
         [HarmonyReversePatch]
@@ -488,12 +495,14 @@ namespace StrmAssistant.Mod
                 var name = nameof(season) + indexNumber.Value.ToString("00", CultureInfo.InvariantCulture) + "-poster";
 
                 var seriesFolderFiles =
-                    GetLocalFilesStub(__instance, season.Series, libraryOptions, false, directoryService);
+                    GetLocalFilesStub(__instance, season.Series, libraryOptions, false, directoryService,
+                        CancellationToken.None);
                 var result = AddLocalImageStub(__instance, seriesFolderFiles, images, name, ImageType.Primary);
 
                 if (result) return;
 
-                var seasonFolderFiles = GetLocalFilesStub(__instance, season, libraryOptions, false, directoryService);
+                var seasonFolderFiles = GetLocalFilesStub(__instance, season, libraryOptions, false, directoryService,
+                    CancellationToken.None);
                 AddLocalImageStub(__instance, seasonFolderFiles, images, name, ImageType.Primary);
             }
         }

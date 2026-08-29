@@ -168,9 +168,12 @@ namespace StrmAssistant.Common
 				}
 
         [HarmonyReversePatch]
+        // ★ 4.9/4.10 兼容修复：真实签名 GetStaticMediaSources(BaseItem item, bool enablePathSubstitution,
+        //   bool fillChapters, DeviceProfile deviceProfile, User user) 为 5 参数；旧 stub 声明 7 个业务参数
+        //   （含 enableAlternateMediaSources/LibraryOptions）与真实签名不匹配 → ReversePatch 生成非法 IL
+        //   → CLR invalid program → 被迫走 Reflection。改为只声明与真实签名一致的参数，Harmony 可正常生成。
         private static List<MediaSourceInfo> GetStaticMediaSourcesStub(IMediaSourceManager instance, BaseItem item,
-            bool enableAlternateMediaSources, bool enablePathSubstitution, bool fillChapters,
-            LibraryOptions libraryOptions, DeviceProfile deviceProfile, User user = null) =>
+            bool enablePathSubstitution, bool fillChapters, DeviceProfile deviceProfile, User user) =>
             throw new NotImplementedException();
 
         private List<MediaSourceInfo> GetStaticMediaSourcesByApi(BaseItem item, bool enableAlternateMediaSources,
@@ -191,8 +194,8 @@ namespace StrmAssistant.Common
                     case PatchApproach.Harmony:
                         try
                         {
-                            return GetStaticMediaSourcesStub(_mediaSourceManager, item, enableAlternateMediaSources, false,
-                                false, libraryOptions, null, null);
+                            return GetStaticMediaSourcesStub(_mediaSourceManager, item, enableAlternateMediaSources,
+                                false, null, null);
                         }
                         catch (Exception ex)
                         {
