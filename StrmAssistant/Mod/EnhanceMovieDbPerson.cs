@@ -128,11 +128,23 @@ namespace StrmAssistant.Mod
         {
             var codeMatcher = new CodeMatcher(instructions, generator);
             if (_cacheTime == null) return instructions;
-            codeMatcher.MatchStartForward(CodeMatch.LoadsField(_cacheTime))
-                .ThrowIfInvalid("Missing CacheTime field")
-                .RemoveInstruction()
-                .InsertAndAdvance(CodeInstruction.Call(typeof(EnhanceMovieDbPerson), nameof(GetPersonCacheTime)));
-            return codeMatcher.Instructions();
+            // ★ 4.10 兼容修复: 状态机改用 cacheKey + IDirectoryService 缓存（4.10 重构），
+            //   不再有 ldsfld CacheTime 引用。此 transpiler 在 4.10 由官方新缓存机制取代，
+            //   匹配不到时静默跳过（非禁用——功能由官方实现覆盖），避免报错刷屏。
+            try
+            {
+                if (codeMatcher.MatchStartForward(CodeMatch.LoadsField(_cacheTime)).IsValid)
+                {
+                    codeMatcher.RemoveInstruction()
+                        .InsertAndAdvance(CodeInstruction.Call(typeof(EnhanceMovieDbPerson), nameof(GetPersonCacheTime)));
+                    return codeMatcher.Instructions();
+                }
+            }
+            catch (Exception)
+            {
+                // CacheTime 字段在 4.10 状态机中已移除（改用 IDirectoryService 缓存），跳过
+            }
+            return instructions;
         }
 
         [HarmonyPrefix]

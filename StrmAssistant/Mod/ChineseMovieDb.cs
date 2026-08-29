@@ -199,7 +199,22 @@ namespace StrmAssistant.Mod
         private static IEnumerable<CodeInstruction> GetEpisodeInfoAsyncTranspiler(IEnumerable<CodeInstruction> ins, ILGenerator gen) {
             var cm = new CodeMatcher(ins, gen);
             if (_cacheTime == null) return ins;
-            return cm.MatchStartForward(CodeMatch.LoadsField(_cacheTime)).RemoveInstruction().InsertAndAdvance(CodeInstruction.Call(typeof(ChineseMovieDb), nameof(GetEpisodeCacheTime))).Instructions();
+            // ★ 4.10 兼容修复: 状态机里 CacheTime 字段可能已不再被 ldsfld 引用（4.10 重构）
+            //   匹配不到时静默跳过（返回原指令），避免抛异常导致 Warn 刷屏
+            try
+            {
+                if (cm.MatchStartForward(CodeMatch.LoadsField(_cacheTime)).IsValid)
+                {
+                    return cm.RemoveInstruction()
+                        .InsertAndAdvance(CodeInstruction.Call(typeof(ChineseMovieDb), nameof(GetEpisodeCacheTime)))
+                        .Instructions();
+                }
+            }
+            catch (Exception)
+            {
+                // CacheTime 字段在 4.10 状态机中不可用，静默跳过
+            }
+            return ins;
         }
 
         private static bool IsUpdateNeeded(string cur, string n = null) {
