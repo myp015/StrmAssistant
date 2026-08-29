@@ -400,10 +400,15 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPrefix]
-        private static void RunExtractionPrefix(object __instance, ref string inputPath, MediaContainers? container,
-            MediaStream videoStream, MediaProtocol? protocol, int? streamIndex, Video3DFormat? threedFormat,
-            ref TimeSpan? startOffset, TimeSpan? interval, string targetDirectory, string targetFilename, int? maxWidth,
-            bool enableThumbnailFilter)
+        // ★ 4.9/4.10 兼容修复：只声明 prefix 实际使用的参数（__instance + ref startOffset）
+        //   4.9.5.0:  RunExtraction(string inputPath, IDictionary requestHeaders, MediaContainers? container, MediaStream videoStream,
+        //              Nullable<MediaProtocol> protocol, int? streamIndex, Video3DFormat? threedFormat, TimeSpan? startOffset, ...)
+        //   4.10.0.29: RunExtraction(MediaSourceInfo mediaSource, string inputPath, MediaContainers? container, MediaStream videoStream,
+        //              MediaProtocol protocol (非 Nullable!), int? streamIndex, Video3DFormat? threedFormat, TimeSpan? startOffset, ...)
+        //   两版本差异：4.9 首参=inputPath，4.10 首参=mediaSource 且 protocol 由 Nullable 改为非 Nullable。
+        //   若 prefix 声明完整签名（尤其 MediaProtocol? protocol），4.10 会因参数类型不匹配生成非法 IL → CLR invalid program。
+        //   解决：只声明实际用到的 __instance 与 ref startOffset（两者在 4.9/4.10 类型一致），Harmony 按名匹配其余参数。
+        private static void RunExtractionPrefix(object __instance, ref TimeSpan? startOffset)
         {
             var timeoutProperty = Traverse.Create(__instance).Property("TotalTimeoutMs");
             var origTimeout = timeoutProperty.GetValue<int>();
