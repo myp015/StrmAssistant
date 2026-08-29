@@ -478,6 +478,22 @@ namespace StrmAssistant.Mod
                     Plugin.Instance.Logger.Warn($"  Method: {methodName}");
                     Plugin.Instance.Logger.Info($"  The method IL structure may have changed. Attempting reflection fallback...");
                 }
+                // ★ 4.10 兼容修复: Harmony 无法反编译复杂方法时抛 CLR invalid program（已知限制）
+                //   与 ReversePatch 一致：识别为已知限制，Info 降级（不 Warn 刷屏），Reflection fallback
+                else if (he.Message.Contains("Common Language Runtime detected an invalid program") ||
+                         (he.Message.Contains("CLR") && he.Message.Contains("invalid program")))
+                {
+                    var detailedMessage = "Harmony无法反编译此方法（可能包含复杂IL代码或泛型约束）。这是Harmony的已知限制，不影响功能，将使用反射方式。";
+                    if (!Plugin.Instance.DebugMode)
+                    {
+                        Plugin.Instance.Logger.Info($"{tracker.PatchType.Name}: {detailedMessage}");
+                    }
+                    else
+                    {
+                        Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} {action}: {detailedMessage}");
+                        Plugin.Instance.Logger.Warn($"  Method: {methodName}");
+                    }
+                }
                 else
                 {
                     Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} {action} Failed: {he.Message}");
