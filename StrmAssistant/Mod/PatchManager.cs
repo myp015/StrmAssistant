@@ -93,6 +93,21 @@ namespace StrmAssistant.Mod
             NoBoxsetsAutoCreation = new NoBoxsetsAutoCreation();
             EnhanceNotificationSystem = new EnhanceNotificationSystem();
             EnableDeepDelete = new EnableDeepDelete();
+
+            // ★ 总览 debug 日志：遍历所有 PatchTracker，打印每个模块的最终状态
+            if (Plugin.Instance.DebugMode)
+            {
+                Plugin.Instance.Logger.Debug($"========== StrmAssistant 模块启动总览 ({PatchTrackerList.Count} 个模块) ==========");
+                foreach (var tracker in PatchTrackerList.OrderBy(t => t.PatchType.Name))
+                {
+                    var approach = tracker.FallbackPatchApproach;
+                    var status = tracker.Status;
+                    var mark = status == PatchStatus.Applied || status == PatchStatus.Initialized ? "✓" : "✗";
+                    Plugin.Instance.Logger.Debug(
+                        $"  {mark} {tracker.PatchType.Name,-28} Status={status,-12} Approach={approach}");
+                }
+                Plugin.Instance.Logger.Debug($"==================================================================");
+            }
         }
 
         public static bool IsPatched(MethodBase methodInfo, Type type)

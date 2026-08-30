@@ -133,12 +133,22 @@ namespace StrmAssistant.Common
                 _getAllFingerprintFilesForSeason is null || _updateSequencesForSeason is null || _timeoutMs is null)
             {
                 PatchTracker.FallbackPatchApproach = PatchApproach.None;
+                if (Plugin.Instance.DebugMode)
+                {
+                    _logger.Debug($"[FingerprintApi] ✗ Initialize incomplete - Manager={(_audioFingerprintManager != null ? "OK" : "NULL")}, CreateTitle={(_createTitleFingerprint != null ? "OK" : "NULL")}, GetAll={(_getAllFingerprintFilesForSeason != null ? "OK" : "NULL")}, UpdateSeq={(_updateSequencesForSeason != null ? "OK" : "NULL")}, TimeoutMs={(_timeoutMs != null ? "OK" : "NULL")}");
+                }
             }
             else if (Plugin.Instance.IsModSupported)
             {
                 PatchManager.ReversePatch(PatchTracker, _createTitleFingerprint, nameof(CreateTitleFingerprintStub));
                 PatchManager.ReversePatch(PatchTracker, _getAllFingerprintFilesForSeason, nameof(GetAllFingerprintFilesForSeasonStub));
                 PatchManager.ReversePatch(PatchTracker, _updateSequencesForSeason, nameof(UpdateSequencesForSeasonStub));
+            }
+
+            // ★ debug 日志：FingerprintApi 初始化完成状态
+            if (Plugin.Instance.DebugMode)
+            {
+                _logger.Debug($"[FingerprintApi] ✓ Initialize done - Fallback={PatchTracker.FallbackPatchApproach}, Status={PatchTracker.Status}");
             }
         }
 

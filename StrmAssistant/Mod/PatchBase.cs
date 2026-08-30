@@ -18,12 +18,22 @@ namespace StrmAssistant.Mod
         protected void Initialize()
         {
             PatchTracker.Status = PatchStatus.Initializing;
-            
+
             try
             {
                 OnInitialize();
                 PatchTracker.Status = PatchStatus.Initialized;
                 PatchTracker.InitializedAt = DateTime.Now;
+
+                // ★ 统一 debug 日志：模块 OnInitialize 成功
+                if (Plugin.Instance.DebugMode)
+                {
+                    Plugin.Instance.Logger.Debug($"[{PatchTracker.PatchType.Name}] ✓ OnInitialize OK - Status={PatchTracker.Status}, Fallback={PatchTracker.FallbackPatchApproach}");
+                }
+                else
+                {
+                    Plugin.Instance.Logger.Info($"[{PatchTracker.PatchType.Name}] OnInitialize completed - Status={PatchTracker.Status}");
+                }
             }
             catch (Exception e)
             {
@@ -32,7 +42,7 @@ namespace StrmAssistant.Mod
                 
                 if (Plugin.Instance.DebugMode)
                 {
-                    Plugin.Instance.Logger.Debug(e.Message);
+                    Plugin.Instance.Logger.Debug($"[{PatchTracker.PatchType.Name}] ✗ OnInitialize EXCEPTION: {e.Message}");
                     Plugin.Instance.Logger.Debug(e.StackTrace);
                 }
 
@@ -57,8 +67,33 @@ namespace StrmAssistant.Mod
 
         protected abstract void Prepare(bool apply);
 
-        public void Patch() => Prepare(true);
+        public void Patch()
+        {
+            // ★ 统一 debug 日志：模块 Patch 应用前
+            if (Plugin.Instance.DebugMode)
+            {
+                Plugin.Instance.Logger.Debug($"[{PatchTracker.PatchType.Name}] ▶ Patch() applying (Fallback={PatchTracker.FallbackPatchApproach})");
+            }
 
-        public void Unpatch() => Prepare(false);
+            Prepare(true);
+            PatchTracker.Status = PatchStatus.Applied;
+
+            // ★ 统一 debug 日志：模块 Patch 应用后
+            if (Plugin.Instance.DebugMode)
+            {
+                Plugin.Instance.Logger.Debug($"[{PatchTracker.PatchType.Name}] ✓ Patch() applied - Status={PatchTracker.Status}");
+            }
+        }
+
+        public void Unpatch()
+        {
+            if (Plugin.Instance.DebugMode)
+            {
+                Plugin.Instance.Logger.Debug($"[{PatchTracker.PatchType.Name}] ▶ Unpatch() called");
+            }
+
+            Prepare(false);
+            PatchTracker.Status = PatchStatus.NotInitialized;
+        }
     }
 }

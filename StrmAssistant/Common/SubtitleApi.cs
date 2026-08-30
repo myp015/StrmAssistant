@@ -129,6 +129,16 @@ namespace StrmAssistant.Common
                 {
                     _logger.Info($"{nameof(SubtitleApi)} - Harmony patches applied successfully (Target: Emby 4.9.1+)");
                 }
+                else if (Plugin.Instance.DebugMode)
+                {
+                    _logger.Debug($"[SubtitleApi] patch1={patch1}, patch2={patch2}, Fallback={PatchTracker.FallbackPatchApproach}");
+                }
+            }
+
+            // ★ debug 日志：SubtitleApi 初始化完成状态
+            if (Plugin.Instance.DebugMode)
+            {
+                _logger.Debug($"[SubtitleApi] ✓ Initialize done - SubtitleResolver={( _subtitleResolver != null ? "OK" : "NULL")}, Fallback={PatchTracker.FallbackPatchApproach}");
             }
         }
 
