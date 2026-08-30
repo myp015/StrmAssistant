@@ -94,19 +94,23 @@ namespace StrmAssistant.Mod
             EnhanceNotificationSystem = new EnhanceNotificationSystem();
             EnableDeepDelete = new EnableDeepDelete();
 
-            // ★ 总览 debug 日志：遍历所有 PatchTracker，打印每个模块的最终状态
-            if (Plugin.Instance.DebugMode)
+            // ★ 总览日志：遍历所有 PatchTracker，打印每个模块的最终状态（Info 级别，无需开启 DebugMode）
+            try
             {
-                Plugin.Instance.Logger.Debug($"========== StrmAssistant 模块启动总览 ({PatchTrackerList.Count} 个模块) ==========");
+                Plugin.Instance.Logger.Info($"========== StrmAssistant 模块启动总览 ({PatchTrackerList.Count} 个模块) ==========");
                 foreach (var tracker in PatchTrackerList.OrderBy(t => t.PatchType.Name))
                 {
                     var approach = tracker.FallbackPatchApproach;
                     var status = tracker.Status;
                     var mark = status == PatchStatus.Applied || status == PatchStatus.Initialized ? "✓" : "✗";
-                    Plugin.Instance.Logger.Debug(
+                    Plugin.Instance.Logger.Info(
                         $"  {mark} {tracker.PatchType.Name,-28} Status={status,-12} Approach={approach}");
                 }
-                Plugin.Instance.Logger.Debug($"==================================================================");
+                Plugin.Instance.Logger.Info($"==================================================================");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Instance.Logger.Debug($"模块总览日志输出失败: {ex.Message}");
             }
         }
 
