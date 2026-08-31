@@ -531,6 +531,26 @@ namespace StrmAssistant.Mod
                     Plugin.Instance.Logger.Info(
                         "EnhanceChineseSearch - Tokenizer exists but SHA-1 is not recognized. No action taken.");
 
+                    // ★ arm64 兼容：已存在文件的 SHA-1 不属于当前架构的预期列表。
+                    //   可能残留了其他架构的 libsimple.so（例如 x86 版被拷到 arm64 服务器），
+                    //   直接导出当前架构的正确版本覆盖，避免加载失败。
+                    if (File.Exists(_tokenizerPath))
+                    {
+                        var existingFileArch = GetElfArch(_tokenizerPath);
+                        var expectedArch = RuntimeInformation.ProcessArchitecture == Architecture.Arm64
+                            ? "aarch64"
+                            : RuntimeInformation.ProcessArchitecture == Architecture.X64
+                                ? "x86-64"
+                                : null;
+                        if (existingFileArch != null && expectedArch != null &&
+                            existingFileArch != expectedArch)
+                        {
+                            Plugin.Instance.Logger.Info(
+                                $"EnhanceChineseSearch - Existing tokenizer is {existingFileArch} but current arch is {expectedArch}. Overwriting with correct arch...");
+                            ExportTokenizer(resourceName);
+                        }
+                    }
+
                     return true;
                 }
 
@@ -575,6 +595,7 @@ namespace StrmAssistant.Mod
             var tokenizerNamespace = Assembly.GetExecutingAssembly().GetName().Name + ".Tokenizer";
             var winSimpleTokenizer = $"{tokenizerNamespace}.win.libsimple.so";
             var linuxSimpleTokenizer = $"{tokenizerNamespace}.linux.libsimple.so";
+            var linuxArm64SimpleTokenizer = $"{tokenizerNamespace}.linux-arm64.libsimple.so";
 
             var architecture = RuntimeInformation.ProcessArchitecture;
             switch (Environment.OSVersion.Platform)
@@ -583,6 +604,9 @@ namespace StrmAssistant.Mod
                     return winSimpleTokenizer;
                 case PlatformID.Unix when architecture == Architecture.X64:
                     return linuxSimpleTokenizer;
+                // ★ arm64 支持：aarch64 Linux 使用专用的 arm64 libsimple.so
+                case PlatformID.Unix when architecture == Architecture.Arm64:
+                    return linuxArm64SimpleTokenizer;
                 default:
                     return null;
             }
@@ -590,6 +614,7 @@ namespace StrmAssistant.Mod
 
         private static Dictionary<Version, string> GetExpectedSha1()
         {
+            var architecture = RuntimeInformation.ProcessArchitecture;
             switch (Environment.OSVersion.Platform)
             {
                 case PlatformID.Win32NT:
@@ -597,10 +622,16 @@ namespace StrmAssistant.Mod
                     {
                         { new Version(0, 5, 0), "aed57350b46b51bb7d04321b7fe8e5e60b0cdbdc" }
                     };
-                case PlatformID.Unix:
+                case PlatformID.Unix when architecture == Architecture.X64:
                     return new Dictionary<Version, string>
                     {
                         { new Version(0, 5, 0), "8e36162f96c67d77c44b36093f31ae4d297b15c0" }
+                    };
+                // ★ arm64 支持：arm64 版 libsimple.so（v0.5.0 源码在 aarch64 上编译）
+                case PlatformID.Unix when architecture == Architecture.Arm64:
+                    return new Dictionary<Version, string>
+                    {
+                        { new Version(0, 5, 0), "8870fff9ed9a3d81b75d15cc362778209438d741" }
                     };
                 default:
                     return null;
@@ -614,6 +645,39 @@ namespace StrmAssistant.Mod
             {
                 var hash = sha1.ComputeHash(stream);
                 return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+            }
+        }
+
+        /// <summary>
+        /// 读取 ELF header 判断已存在 libsimple.so 的架构（e_machine），返回 "x86-64"/"aarch64" 等，
+        /// 非 ELF 或无法解析时返回 null。用于 arm64 服务器上覆盖残留的错误架构 tokenizer。
+        /// </summary>
+        private static string GetElfArch(string filePath)
+        {
+            try
+            {
+                using (var fs = File.OpenRead(filePath))
+                {
+                    var header = new byte[20];
+                    if (fs.Read(header, 0, header.Length) != header.Length) return null;
+                    // ELF magic
+                    if (header[0] != 0x7f || header[1] != (byte)'E' || header[2] != (byte)'L' || header[3] != (byte)'F')
+                        return null;
+                    // e_machine at offset 18 (LE)
+                    var machine = BitConverter.ToUInt16(header, 18);
+                    switch (machine)
+                    {
+                        case 0x3e: return "x86-64";
+                        case 0xb7: return "aarch64";
+                        case 0x14: return "x86";
+                        case 0x28: return "arm";
+                        default: return machine.ToString("x");
+                    }
+                }
+            }
+            catch
+            {
+                return null;
             }
         }
 
