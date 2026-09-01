@@ -54,3 +54,44 @@
 - **Recommended Emby Version**: 4.9.1.90 or higher
 - **Tested On**: 4.9.1.90
 - **Target Framework**: .NET 6.0
+
+## Latest Optimizations (v26.3.25)
+
+✅ **Full ARM64/aarch64 support (new in 2026-09)**
+- **Harmony 2.4.2**: upgraded Lib.Harmony 2.3.6 → 2.4.2, fixing `NotImplementedException` on every patch on arm64; all modules now use real Harmony patches on ARM64
+- **Chinese search enhancement on arm64**: built arm64 `libsimple.so` (SQLite FTS5 Chinese/Pinyin tokenizer), enabling Chinese fuzzy & Pinyin search on ARM64 servers
+- **libsimple source integrated**: full source + one-click build script in `Tokenizer/libsimple-src/`
+
+## Architecture Support
+
+| Architecture | Status | Notes |
+|--------------|--------|-------|
+| x86-64 / x64 | ✅ Full | All features available |
+| ARM64 / aarch64 | ✅ Full | Requires Harmony 2.4.2+, incl. Chinese search |
+
+## Build
+
+### Method 1: GitHub Actions (recommended)
+
+Push code changes to GitHub and CI automatically builds & publishes a `build-N` release:
+
+```bash
+git add -A && git commit -m "..." && git push
+```
+
+Download the latest `StrmAssistant.dll` from [Releases](https://github.com/myp015/StrmAssistant/releases), deploy to `config/plugins/StrmAssistant.dll`, then restart Emby.
+
+### Method 2: Local build
+
+- Requires .NET 6.0 SDK or higher
+- On Linux use `build-local.sh` (works around Resource.Embedder Linux path bug)
+
+```bash
+bash build-local.sh
+```
+
+Output: `StrmAssistant/bin/Release/StrmAssistant.merged.dll`
+
+### Build libsimple.so (Chinese/Pinyin tokenizer)
+
+Source & one-click script live in `StrmAssistant/Tokenizer/libsimple-src/` (see its README).

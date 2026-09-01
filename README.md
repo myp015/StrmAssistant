@@ -16,6 +16,11 @@
 
 ### 最新优化 (v26.3.25)
 
+✅ **arm64/aarch64 全面支持（2026-09 新增）**
+- **Harmony 2.4.2**：升级 Lib.Harmony 2.3.6 → 2.4.2，修复 arm64 下所有补丁抛 `NotImplementedException` 的问题，全部模块在 arm64 上恢复真正的 Harmony 补丁
+- **中文搜索增强 arm64**：编译 arm64 版 `libsimple.so`（SQLite FTS5 中文/拼音分词器），arm64 服务器也可开启中文模糊搜索/拼音搜索
+- **libsimple 源码集成**：`Tokenizer/libsimple-src/` 收录完整源码 + 一键编译脚本，可离线交叉编译 arm64/amd64
+
 ✅ **全面的架构重构**
 - 引入新的`EmbyVersionAdapter`，更智能的版本检测和适配
 - 创建`ServiceLocator`服务定位器，统一管理全局服务
@@ -70,21 +75,41 @@
 | 4.9.1.0-79 | ✅ 支持 | 部分功能可能降级 |
 | < 4.9.1.0 | ❌ 不支持 | 已移除兼容逻辑 |
 
+### 架构支持
+
+| 架构 | 兼容状态 | 备注 |
+|---------|---------|------|
+| x86-64 / x64 | ✅ 完全支持 | 所有功能可用 |
+| ARM64 / aarch64 | ✅ 完全支持 | 需 Harmony 2.4.2+，含中文搜索增强 |
+
 ## 构建说明
 
-### 环境要求
+### 方式一：GitHub Actions（推荐）
 
-- .NET 6.0 SDK 或更高
-- Visual Studio 2022 / VS Code / JetBrains Rider
-
-### 快速构建
+修改代码后推送到 GitHub，CI 自动编译并发布 `build-N` Release：
 
 ```bash
-dotnet restore
-dotnet build -c Release
+git add -A && git commit -m "..." && git push
 ```
 
-构建产物位于: `StrmAssistant/bin/Release/net6.0/StrmAssistant.dll`
+然后从 [Releases](https://github.com/myp015/StrmAssistant/releases) 下载最新 `build-N` 的 `StrmAssistant.dll`，部署到 `config/plugins/StrmAssistant.dll` 后重启 Emby。
+
+### 方式二：本地构建
+
+- 需要 .NET 6.0 SDK 或更高
+- Linux 下请使用 `build-local.sh`（绕开 Resource.Embedder 的 Linux 路径问题）
+
+```bash
+bash build-local.sh
+```
+
+构建产物位于: `StrmAssistant/bin/Release/StrmAssistant.merged.dll`
+
+> 注意：本地构建时 `Resource.Embedder`（卫星资源合并）在 Linux 上有 bug，脚本已自动绕过。
+
+### 编译 libsimple.so（中文/拼音分词器）
+
+源码与一键脚本位于 `StrmAssistant/Tokenizer/libsimple-src/`，详见该目录 README。
 
 
 ## 声明
