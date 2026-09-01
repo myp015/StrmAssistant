@@ -20,8 +20,8 @@
 - `ServiceLocator` for unified global service management
 - Enhanced `PatchTracker` with detailed patch status tracking
 
-✅ **Full Support for Emby 4.9.1.90**
-- Optimized API calls specifically for version 4.9.1.90
+✅ **Full Support for Emby 4.9.1.90 / 4.10.0.29**
+- Optimized API calls specifically for 4.9.1.90 and 4.10.0.29
 - Support for latest MediaSources and notification system enhancements
 - Supports Emby 4.9.1 and above only
 
@@ -52,7 +52,7 @@
 - **Plugin Version**: 26.3.25
 - **Minimum Emby Version**: 4.9.1
 - **Recommended Emby Version**: 4.9.1.90 or higher
-- **Tested On**: 4.9.1.90
+- **Tested On**: 4.9.1.90, 4.10.0.29
 - **Target Framework**: .NET 6.0
 
 ## Latest Optimizations (v26.3.25)
