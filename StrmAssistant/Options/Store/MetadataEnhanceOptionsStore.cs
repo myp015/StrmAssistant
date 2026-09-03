@@ -110,6 +110,19 @@ namespace StrmAssistant.Options.Store
                     }
                 }
 
+                if (changedProperties.Contains(nameof(MetadataEnhanceOptions.OptimizeMovieDbEpisodeScraping)) ||
+                    changedProperties.Contains(nameof(MetadataEnhanceOptions.DisableEpisodeImageScraping)))
+                {
+                    if (options.OptimizeMovieDbEpisodeScraping || options.DisableEpisodeImageScraping)
+                    {
+                        PatchManager.OptimizeMovieDbEpisodeScraping.Patch();
+                    }
+                    else
+                    {
+                        PatchManager.OptimizeMovieDbEpisodeScraping.Unpatch();
+                    }
+                }
+
                 if (changedProperties.Contains(nameof(MetadataEnhanceOptions.EnhanceMovieDbPerson)))
                 {
                     if (options.EnhanceMovieDbPerson)
@@ -198,6 +211,9 @@ namespace StrmAssistant.Options.Store
                 _logger.Info("TvdbFallbackLanguages is set to {0}", options.TvdbFallbackLanguages);
                 _logger.Info("BlockNonFallbackLanguage is set to {0}", options.BlockNonFallbackLanguage);
                 _logger.Info("MovieDbEpisodeGroup is set to {0}", options.MovieDbEpisodeGroup);
+                _logger.Info("OptimizeMovieDbEpisodeScraping is set to {0}", options.OptimizeMovieDbEpisodeScraping);
+                _logger.Info("DisableMovieDbEpisodeScrapingFallback is set to {0}", options.DisableMovieDbEpisodeScrapingFallback);
+                _logger.Info("DisableEpisodeImageScraping is set to {0}", options.DisableEpisodeImageScraping);
                 _logger.Info("LocalEpisodeGroup is set to {0}", options.LocalEpisodeGroup);
                 _logger.Info("EnhanceMovieDbPerson is set to {0}", options.EnhanceMovieDbPerson);
                 _logger.Info("PreferOriginalPoster is set to {0}", options.PreferOriginalPoster);

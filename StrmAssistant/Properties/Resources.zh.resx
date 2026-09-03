@@ -428,6 +428,24 @@
   <data name="MetadataEnhanceOptions_LocalEpisodeGroup_Local_Episode_Group" xml:space="preserve">
     <value>启用本地剧集组 TMDB</value>
   </data>
+  <data name="MetadataEnhanceOptions_OptimizeMovieDbEpisodeScraping_Optimize_MovieDb_Episode_Scraping" xml:space="preserve">
+    <value>优化 MovieDb 单集刮削</value>
+  </data>
+  <data name="MetadataEnhanceOptions_OptimizeMovieDbEpisodeScraping_Fetch_episode_metadata_by_season_to_reduce_TMDB_requests__Default_is_OFF_" xml:space="preserve">
+    <value>按季获取单集元数据以减少 TMDB 请求，默认关闭。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DisableMovieDbEpisodeScrapingFallback_Disable_Per_Episode_Fallback" xml:space="preserve">
+    <value>禁用逐集兑底请求</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DisableMovieDbEpisodeScrapingFallback_Skip_per_episode_requests_when_season_data_is_empty__Default_is_OFF_" xml:space="preserve">
+    <value>当按季获取已成功但该集数据缺失或为空时，跳过逐集兑底请求，默认关闭。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DisableEpisodeImageScraping_Disable_Episode_Image_Scraping" xml:space="preserve">
+    <value>禁用集图片刮削</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DisableEpisodeImageScraping_Skip_all_episode_image_requests_to_speed_up_library_import__Default_is_OFF_" xml:space="preserve">
+    <value>跳过所有单集图片请求以加快入库速度，默认关闭。</value>
+  </data>
   <data name="ExperienceEnhanceOptions_EditorTitle_Experience_Enhance" xml:space="preserve">
     <value>体验增强</value>
   </data>

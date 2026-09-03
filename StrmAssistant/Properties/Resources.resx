@@ -515,6 +515,24 @@
   <data name="MetadataEnhanceOptions_LocalEpisodeGroup_Local_Episode_Group" xml:space="preserve">
     <value>Enable Local Episode Group</value>
   </data>
+  <data name="MetadataEnhanceOptions_OptimizeMovieDbEpisodeScraping_Optimize_MovieDb_Episode_Scraping" xml:space="preserve">
+    <value>Optimize MovieDb Episode Scraping</value>
+  </data>
+  <data name="MetadataEnhanceOptions_OptimizeMovieDbEpisodeScraping_Fetch_episode_metadata_by_season_to_reduce_TMDB_requests__Default_is_OFF_" xml:space="preserve">
+    <value>Fetch episode metadata by season to reduce TMDB requests. Default is OFF.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DisableMovieDbEpisodeScrapingFallback_Disable_Per_Episode_Fallback" xml:space="preserve">
+    <value>Disable Per-Episode Fallback</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DisableMovieDbEpisodeScrapingFallback_Skip_per_episode_requests_when_season_data_is_empty__Default_is_OFF_" xml:space="preserve">
+    <value>Skip per-episode requests when season data is fetched but the episode is missing or empty. Default is OFF.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DisableEpisodeImageScraping_Disable_Episode_Image_Scraping" xml:space="preserve">
+    <value>Disable Episode Image Scraping</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DisableEpisodeImageScraping_Skip_all_episode_image_requests_to_speed_up_library_import__Default_is_OFF_" xml:space="preserve">
+    <value>Skip all episode image requests to speed up library import. Default is OFF.</value>
+  </data>
   <data name="ExperienceEnhanceOptions_EditorTitle_Experience_Enhance" xml:space="preserve">
     <value>Experience Enhance</value>
   </data>

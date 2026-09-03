@@ -83,6 +83,25 @@ namespace StrmAssistant.Options
         [EnabledCondition(nameof(IsMovieDbPluginLoaded), SimpleCondition.IsTrue)]
         public bool LocalEpisodeGroup { get; set; } = false;
 
+        [DisplayNameL("MetadataEnhanceOptions_OptimizeMovieDbEpisodeScraping_Optimize_MovieDb_Episode_Scraping", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_OptimizeMovieDbEpisodeScraping_Fetch_episode_metadata_by_season_to_reduce_TMDB_requests__Default_is_OFF_", typeof(Resources))]
+        [EnabledCondition(nameof(IsMovieDbPluginLoaded), SimpleCondition.IsTrue)]
+        [Required]
+        public bool OptimizeMovieDbEpisodeScraping { get; set; } = false;
+
+        [DisplayNameL("MetadataEnhanceOptions_DisableMovieDbEpisodeScrapingFallback_Disable_Per_Episode_Fallback", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_DisableMovieDbEpisodeScrapingFallback_Skip_per_episode_requests_when_season_data_is_empty__Default_is_OFF_", typeof(Resources))]
+        [VisibleCondition(nameof(OptimizeMovieDbEpisodeScraping), SimpleCondition.IsTrue)]
+        [EnabledCondition(nameof(IsMovieDbPluginLoaded), SimpleCondition.IsTrue)]
+        [Required]
+        public bool DisableMovieDbEpisodeScrapingFallback { get; set; } = false;
+
+        [DisplayNameL("MetadataEnhanceOptions_DisableEpisodeImageScraping_Disable_Episode_Image_Scraping", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_DisableEpisodeImageScraping_Skip_all_episode_image_requests_to_speed_up_library_import__Default_is_OFF_", typeof(Resources))]
+        [EnabledCondition(nameof(IsMovieDbPluginLoaded), SimpleCondition.IsTrue)]
+        [Required]
+        public bool DisableEpisodeImageScraping { get; set; } = false;
+
         [DisplayNameL("MetadataEnhanceOptions_EnhanceMovieDbPerson_Enhance_MovieDb_Person", typeof(Resources))]
         [DescriptionL("MetadataEnhanceOptions_EnhanceMovieDbPerson_Import_season_cast_and_update_series_people__Default_is_OFF_", typeof(Resources))]
         [EnabledCondition(nameof(IsMovieDbPluginLoaded), SimpleCondition.IsTrue)]
