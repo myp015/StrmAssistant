@@ -849,11 +849,77 @@ namespace StrmAssistant.Common
             return path != null && string.Equals(Path.GetExtension(path), ".strm", StringComparison.OrdinalIgnoreCase);
         }
 
+        private static MethodInfo _mountMethod;
+        private static bool _mountUsesReadOnlyMemory;
+
+        private Task<IMediaMount> InvokeMountAsync(string strmPath, CancellationToken cancellationToken)
+        {
+            if (_mountMethod == null)
+            {
+                var type = _mediaMountManager.GetType();
+                var iface = typeof(IMediaMountManager);
+
+                // 优先匹配 (ReadOnlyMemory<char>, ReadOnlyMemory<char>, CancellationToken)
+                var memMethod = iface.GetMethod("Mount", new[]
+                {
+                    typeof(ReadOnlyMemory<char>), typeof(ReadOnlyMemory<char>), typeof(CancellationToken)
+                });
+
+                // 回退到 (string, string, CancellationToken)
+                var strMethod = iface.GetMethod("Mount", new[]
+                {
+                    typeof(string), typeof(string), typeof(CancellationToken)
+                });
+
+                // 通过接口映射检查实现类型实际提供了哪个重载
+                var map = type.GetInterfaceMap(iface);
+                MethodInfo Resolve(MethodInfo ifaceMethod)
+                {
+                    if (ifaceMethod == null) return null;
+                    for (var i = 0; i < map.InterfaceMethods.Length; i++)
+                    {
+                        if (map.InterfaceMethods[i] == ifaceMethod)
+                        {
+                            return map.TargetMethods[i];
+                        }
+                    }
+                    return null;
+                }
+
+                var resolvedMem = Resolve(memMethod);
+                if (resolvedMem != null)
+                {
+                    _mountMethod = memMethod;
+                    _mountUsesReadOnlyMemory = true;
+                }
+                else
+                {
+                    var resolvedStr = Resolve(strMethod);
+                    if (resolvedStr != null)
+                    {
+                        _mountMethod = strMethod;
+                        _mountUsesReadOnlyMemory = false;
+                    }
+                    else
+                    {
+                        throw new MissingMethodException(
+                            $"IMediaMountManager.Mount overload not found on {type.FullName}");
+                    }
+                }
+            }
+
+            object[] args = _mountUsesReadOnlyMemory
+                ? new object[] { strmPath.AsMemory(), ReadOnlyMemory<char>.Empty, cancellationToken }
+                : new object[] { strmPath, null, cancellationToken };
+
+            return (Task<IMediaMount>)_mountMethod.Invoke(_mediaMountManager, args);
+        }
+
         public async Task<string> GetStrmMountPath(string strmPath)
         {
             try
             {
-                using var mediaMount = await _mediaMountManager.Mount(strmPath, null, CancellationToken.None);
+                using var mediaMount = await InvokeMountAsync(strmPath, CancellationToken.None).ConfigureAwait(false);
                 
                 if (mediaMount == null)
                 {
