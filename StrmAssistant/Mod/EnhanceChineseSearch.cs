@@ -595,7 +595,7 @@ namespace StrmAssistant.Mod
             var tokenizerNamespace = Assembly.GetExecutingAssembly().GetName().Name + ".Tokenizer";
             var winSimpleTokenizer = $"{tokenizerNamespace}.win.libsimple.so";
             var linuxSimpleTokenizer = $"{tokenizerNamespace}.linux.libsimple.so";
-            var linuxArm64SimpleTokenizer = $"{tokenizerNamespace}.linux-arm64.libsimple.so";
+            var linuxArm64SimpleTokenizer = $"{tokenizerNamespace}.linux_arm64.libsimple.so";
 
             var architecture = RuntimeInformation.ProcessArchitecture;
             switch (Environment.OSVersion.Platform)
