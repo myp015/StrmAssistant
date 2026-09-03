@@ -235,6 +235,17 @@ namespace StrmAssistant
             }
             
             // 启动定期性能报告（仅在DebugMode下，每60分钟一次）
+            // 启动定期内存清理器（按配置启停，防止 Emby 内存持续增长）
+            try
+            {
+                var memOpts = MainOptionsStore.GetOptions().GeneralOptions;
+                MemoryCleaner.ApplySettings(Logger, memOpts.EnableMemoryCleanup, memOpts.MemoryCleanupIntervalMinutes);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"MemoryCleaner initialization failed: {ex.Message}");
+            }
+
             if (DebugMode)
             {
                 try
@@ -507,6 +518,8 @@ namespace StrmAssistant
                 _ = NotificationApi.SendMessageToAdmins(
                     $"[{Resources.PluginOptions_EditorTitle_Strm_Assistant}] {Resources.Uninstall_Warning}", 10000);
             }
+
+            MemoryCleaner.DisposeInstance();
 
             base.OnUninstalling();
         }

@@ -500,6 +500,42 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Enable Periodic Memory Cleanup.
+        /// </summary>
+        public static string GeneralOptions_EnableMemoryCleanup_Title {
+            get {
+                return ResourceManager.GetString("GeneralOptions_EnableMemoryCleanup_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Periodically force a full GC and (on Windows) trim the process working set to prevent Emby's memory from growing unboundedly. Default is True..
+        /// </summary>
+        public static string GeneralOptions_EnableMemoryCleanup_Description {
+            get {
+                return ResourceManager.GetString("GeneralOptions_EnableMemoryCleanup_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Memory Cleanup Interval (Minutes).
+        /// </summary>
+        public static string GeneralOptions_MemoryCleanupInterval_Title {
+            get {
+                return ResourceManager.GetString("GeneralOptions_MemoryCleanupInterval_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Memory cleanup interval. Must be between 1 and 120. Default is 5..
+        /// </summary>
+        public static string GeneralOptions_MemoryCleanupInterval_Description {
+            get {
+                return ResourceManager.GetString("GeneralOptions_MemoryCleanupInterval_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Show Actor Only.
         /// </summary>
         public static string HidePersonOption_ActorOnly_ActorOnly {
