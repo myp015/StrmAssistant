@@ -4,6 +4,7 @@ using Emby.Web.GenericEdit.PropertyDiff;
 using MediaBrowser.Common;
 using MediaBrowser.Model.Logging;
 using StrmAssistant.Common;
+using StrmAssistant.Core;
 using StrmAssistant.Mod;
 using StrmAssistant.Options.UIBaseClasses.Store;
 using StrmAssistant.Properties;
@@ -128,6 +129,14 @@ namespace StrmAssistant.Options.Store
                 if (changedProperties.Contains(nameof(PluginOptions.GeneralOptions.Tier2MaxConcurrentCount)))
                 {
                     QueueManager.UpdateTier2Semaphore(options.GeneralOptions.Tier2MaxConcurrentCount);
+                }
+
+                if (changedProperties.Contains(nameof(PluginOptions.GeneralOptions.EnableMemoryCleanup)) ||
+                    changedProperties.Contains(nameof(PluginOptions.GeneralOptions.MemoryCleanupIntervalMinutes)))
+                {
+                    MemoryCleaner.ApplySettings(_logger,
+                        options.GeneralOptions.EnableMemoryCleanup,
+                        options.GeneralOptions.MemoryCleanupIntervalMinutes);
                 }
 
                 if (PatchManager.EnhanceChineseSearch != null)

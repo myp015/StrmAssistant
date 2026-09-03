@@ -482,6 +482,18 @@
   <data name="GeneralOptions_Tier2MaxConcurrentCount_Refresh_metadata__subtitle__local_tasks__Default_is_1_" xml:space="preserve">
     <value>刷新演員，劇集，掃外掛字幕，處理本地任務等共享，必須在 1 至 20 之間，預設為 1。</value>
   </data>
+  <data name="GeneralOptions_EnableMemoryCleanup_Title" xml:space="preserve">
+    <value>啟用定期記憶體清理</value>
+  </data>
+  <data name="GeneralOptions_EnableMemoryCleanup_Description" xml:space="preserve">
+    <value>定期強制完整 GC，並在 Windows 上歸還進程工作集，防止 Emby 記憶體持續增長。預設開啟。</value>
+  </data>
+  <data name="GeneralOptions_MemoryCleanupInterval_Title" xml:space="preserve">
+    <value>記憶體清理間隔（分鐘）</value>
+  </data>
+  <data name="GeneralOptions_MemoryCleanupInterval_Description" xml:space="preserve">
+    <value>記憶體清理間隔，必須在 1 至 120 之間，預設為 5。</value>
+  </data>
   <data name="GeneralOptions_CooldownDurationSeconds_Applicable_to_single_thread_mode__Default_is_0_" xml:space="preserve">
     <value>單線程模式有效，必須在 0 至 60 之間，預設為 0。</value>
   </data>

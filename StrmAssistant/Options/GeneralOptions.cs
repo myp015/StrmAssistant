@@ -58,6 +58,17 @@ namespace StrmAssistant.Options
         [Required, MinValue(1), MaxValue(20)]
         public int Tier2MaxConcurrentCount { get; set; } = 1;
 
+        [DisplayNameL("GeneralOptions_EnableMemoryCleanup_Title", typeof(Resources))]
+        [DescriptionL("GeneralOptions_EnableMemoryCleanup_Description", typeof(Resources))]
+        [Required]
+        public bool EnableMemoryCleanup { get; set; } = true;
+
+        [DisplayNameL("GeneralOptions_MemoryCleanupInterval_Title", typeof(Resources))]
+        [DescriptionL("GeneralOptions_MemoryCleanupInterval_Description", typeof(Resources))]
+        [VisibleCondition(nameof(EnableMemoryCleanup), SimpleCondition.IsTrue)]
+        [Required, MinValue(1), MaxValue(120)]
+        public int MemoryCleanupIntervalMinutes { get; set; } = 5;
+
         protected override void Validate(ValidationContext context)
         {
             if (CatchupMode && CatchupTaskScope.Contains(CatchupTask.Fingerprint.ToString()) &&

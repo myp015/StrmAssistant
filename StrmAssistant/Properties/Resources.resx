@@ -569,6 +569,18 @@
   <data name="GeneralOptions_Tier2MaxConcurrentCount_Refresh_metadata__subtitle__local_tasks__Default_is_1_" xml:space="preserve">
     <value>Shared by refreshing persons, episodes, external subtitles, local processing tasks, etc. It must be between 1 to 20. Default is 1.</value>
   </data>
+  <data name="GeneralOptions_EnableMemoryCleanup_Title" xml:space="preserve">
+    <value>Enable Periodic Memory Cleanup</value>
+  </data>
+  <data name="GeneralOptions_EnableMemoryCleanup_Description" xml:space="preserve">
+    <value>Periodically force a full GC and (on Windows) trim the process working set to prevent Emby's memory from growing unboundedly. Default is True.</value>
+  </data>
+  <data name="GeneralOptions_MemoryCleanupInterval_Title" xml:space="preserve">
+    <value>Memory Cleanup Interval (Minutes)</value>
+  </data>
+  <data name="GeneralOptions_MemoryCleanupInterval_Description" xml:space="preserve">
+    <value>Memory cleanup interval. Must be between 1 and 120. Default is 5.</value>
+  </data>
   <data name="GeneralOptions_CooldownDurationSeconds_Applicable_to_single_thread_mode__Default_is_0_" xml:space="preserve">
     <value>Applicable to single thread mode. It must be between 0 and 60. Default is 0.</value>
   </data>
