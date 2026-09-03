@@ -30,5 +30,7 @@ namespace StrmAssistant.Provider
         public int id { get; set; }
 
         public int season_number { get; set; }
+
+        public string still_path { get; set; }
     }
 }
