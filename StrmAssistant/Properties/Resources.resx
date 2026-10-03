@@ -153,10 +153,10 @@
     <value>Intro and Credits Detection</value>
   </data>
   <data name="IntroSkipOptions_LibraryScope_Library_Scope" xml:space="preserve">
-    <value>Library Scope</value>
+    <value>Intro Skip Detection Library Scope</value>
   </data>
   <data name="IntroSkipOptions_LibraryScope_TV_shows_library_scope_to_detect__Blank_includes_all_" xml:space="preserve">
-    <value>TV shows library scope to detect. Blank includes all TV shows libraries.</value>
+    <value>TV shows library scope for runtime intro/credits skip detection. Blank includes all TV shows libraries.</value>
   </data>
   <data name="PluginOptions_EditorTitle_Strm_Assistant" xml:space="preserve">
     <value>StrmAssistant</value>
@@ -351,7 +351,7 @@
     <value>Intro Detection Fingerprint Length (Minute)</value>
   </data>
   <data name="IntroSkipOptions_MarkerEnabledLibraryScope_Library_Scope" xml:space="preserve">
-    <value>Library Scope</value>
+    <value>Fingerprint Extraction Library Scope</value>
   </data>
   <data name="IntroSkipOptions_MarkerEnabledLibraryScope_Intro_detection_enabled_library_scope__Blank_includes_all_" xml:space="preserve">
     <value>Library scope to extract fingerprint. Blank includes all libraries with intro detection enabled. Favorites is single selection only</value>
@@ -694,6 +694,9 @@
   </data>
   <data name="ExperienceEnhanceOptions_MergeSeriesPreferences_Series_Merge_Preference" xml:space="preserve">
     <value>TV Series Merge Preference</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_MergeSeriesPreferences_Series_merge_works_across_libraries_only_in_GlobalScope" xml:space="preserve">
+    <value>Series merge across libraries (same series in different libraries) only takes effect when scope is GlobalScope.</value>
   </data>
   <data name="ExtractVideoThumbnailTask_Description_Extract_video_thumbnail_preview" xml:space="preserve">
     <value>Extract video thumbnail preview and chatper images</value>

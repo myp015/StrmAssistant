@@ -66,10 +66,10 @@
     <value>片頭片尾探測</value>
   </data>
   <data name="IntroSkipOptions_LibraryScope_Library_Scope" xml:space="preserve">
-    <value>媒體庫範圍</value>
+    <value>片頭跳過偵測媒體庫範圍</value>
   </data>
   <data name="IntroSkipOptions_LibraryScope_TV_shows_library_scope_to_detect__Blank_includes_all_" xml:space="preserve">
-    <value>劇集媒體庫範圍，留空包含所有劇集媒體庫。</value>
+    <value>運行時片頭片尾跳過偵測的劇集媒體庫範圍，留空包含所有劇集媒體庫。</value>
   </data>
   <data name="PluginOptions_EditorTitle_Strm_Assistant" xml:space="preserve">
     <value>神醫助手</value>
@@ -264,7 +264,7 @@
     <value>片頭聲紋探測時長 (分鐘)</value>
   </data>
   <data name="IntroSkipOptions_MarkerEnabledLibraryScope_Library_Scope" xml:space="preserve">
-    <value>媒體庫範圍</value>
+    <value>聲紋提取媒體庫範圍</value>
   </data>
   <data name="IntroSkipOptions_MarkerEnabledLibraryScope_Intro_detection_enabled_library_scope__Blank_includes_all_" xml:space="preserve">
     <value>擷取聲紋的媒體庫範圍，留白包含所有啟用原生片頭探測的媒體庫，最愛只可單選。</value>
@@ -607,6 +607,9 @@
   </data>
   <data name="ExperienceEnhanceOptions_MergeSeriesPreferences_Series_Merge_Preference" xml:space="preserve">
     <value>電視節目合併偏好</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_MergeSeriesPreferences_Series_merge_works_across_libraries_only_in_GlobalScope" xml:space="preserve">
+    <value>跨媒體庫的同一系列版本合併僅在全局範圍(GlobalScope)下生效。</value>
   </data>
   <data name="ExtractVideoThumbnailTask_Description_Extract_video_thumbnail_preview" xml:space="preserve">
     <value>提取影片預覽縮圖和章節圖</value>

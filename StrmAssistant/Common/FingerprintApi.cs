@@ -332,12 +332,22 @@ namespace StrmAssistant.Common
             return !Plugin.ChapterApi.HasIntro(item) && string.IsNullOrEmpty(_itemRepository.GetIntroDetectionFailureResult(item.InternalId));
         }
 
+        // 判断声纹提取范围是否为"仅最爱"：非空且全部为 -1；空或 null 视为"所有启用 marker 检测的媒体库"
+        private static bool IsFavoritesOnlyScope(string scope)
+        {
+            var ids = scope?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(id => id.Trim())
+                .Where(id => id.Length > 0)
+                .ToArray();
+            return ids is { Length: > 0 } && ids.All(id => id == "-1");
+        }
+
         public List<Episode> FetchIntroPreExtractTaskItems()
         {
             var markerEnabledLibraryScope = Plugin.Instance.IntroSkipStore.GetOptions().MarkerEnabledLibraryScope;
             var itemsFingerprintQuery = new InternalItemsQuery { IncludeItemTypes = new[] { nameof(Episode) }, Recursive = true, GroupByPresentationUniqueKey = false, HasPath = true, HasAudioStream = false };
 
-            if (!string.IsNullOrEmpty(markerEnabledLibraryScope) && markerEnabledLibraryScope.Contains("-1"))
+            if (IsFavoritesOnlyScope(markerEnabledLibraryScope))
                 itemsFingerprintQuery.ParentIds = GetAllFavoriteSeasons().DefaultIfEmpty(-1).ToArray();
             else
             {
@@ -351,16 +361,17 @@ namespace StrmAssistant.Common
 
         public List<Episode> FetchIntroFingerprintTaskItems()
         {
-            var libraryIds = Plugin.Instance.IntroSkipStore.GetOptions().MarkerEnabledLibraryScope.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
+            var markerEnabledLibraryScope = Plugin.Instance.IntroSkipStore.GetOptions().MarkerEnabledLibraryScope;
             var introDetectionFingerprintMinutes = Plugin.Instance.IntroSkipStore.GetOptions().IntroDetectionFingerprintMinutes;
 
-            var itemsFingerprintQuery = new InternalItemsQuery { 
-                IncludeItemTypes = new[] { nameof(Episode) }, Recursive = true, GroupByPresentationUniqueKey = false, 
-                WithoutChapterMarkers = new[] { MarkerType.IntroStart }, MinRunTimeTicks = TimeSpan.FromMinutes(introDetectionFingerprintMinutes).Ticks, 
-                HasIntroDetectionFailure = false, HasAudioStream = true 
+            var itemsFingerprintQuery = new InternalItemsQuery {
+                IncludeItemTypes = new[] { nameof(Episode) }, Recursive = true, GroupByPresentationUniqueKey = false,
+                WithoutChapterMarkers = new[] { MarkerType.IntroStart }, MinRunTimeTicks = TimeSpan.FromMinutes(introDetectionFingerprintMinutes).Ticks,
+                HasIntroDetectionFailure = false, HasAudioStream = true
             };
 
-            if (libraryIds.All(i => i == "-1")) itemsFingerprintQuery.ParentIds = GetAllFavoriteSeasons().DefaultIfEmpty(-1).ToArray();
+            if (IsFavoritesOnlyScope(markerEnabledLibraryScope))
+                itemsFingerprintQuery.ParentIds = GetAllFavoriteSeasons().DefaultIfEmpty(-1).ToArray();
             else
             {
                 if (LibraryPathsInScope.Any()) itemsFingerprintQuery.PathStartsWithAny = LibraryPathsInScope.ToArray();

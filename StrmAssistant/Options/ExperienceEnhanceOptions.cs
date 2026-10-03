@@ -43,6 +43,7 @@ namespace StrmAssistant.Options
         }
 
         [DisplayNameL("ExperienceEnhanceOptions_MergeSeriesPreferences_Series_Merge_Preference", typeof(Resources))]
+        [DescriptionL("ExperienceEnhanceOptions_MergeSeriesPreferences_Series_merge_works_across_libraries_only_in_GlobalScope", typeof(Resources))]
         [VisibleCondition(nameof(MergeMultiVersion), SimpleCondition.IsTrue)]
         [EnabledCondition(nameof(IsModSupported), SimpleCondition.IsTrue)]
         public MergeSeriesScopeOption MergeSeriesPreference { get; set; } = MergeSeriesScopeOption.LibraryScope;

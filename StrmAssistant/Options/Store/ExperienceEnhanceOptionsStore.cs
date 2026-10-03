@@ -179,6 +179,13 @@ namespace StrmAssistant.Options.Store
                         options.UIFunctionOptions.EnhanceMissingEpisodes);
                     _logger.Info("NoBoxsetsAutoCreation is set to {0}",
                         options.UIFunctionOptions.NoBoxsetsAutoCreation);
+
+                    // 系列合并仅 GlobalScope 生效的可见提示（参考 Mod/MergeMultiVersion.cs 行 217-218）
+                    if (options.MergeMultiVersion &&
+                        options.MergeSeriesPreference == ExperienceEnhanceOptions.MergeSeriesScopeOption.LibraryScope)
+                    {
+                        _logger.Warn("MergeMultiVersion 已开启但 MergeSeriesPreference 为 LibraryScope：跨媒体库的同一系列版本合并仅在 GlobalScope 下生效。若需跨库按系列合并，请选择 GlobalScope。");
+                    }
                 }
 
                 if (suppress) _currentSuppressOnOptionsSaved = false;

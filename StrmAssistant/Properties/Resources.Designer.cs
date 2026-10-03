@@ -359,7 +359,17 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("ExperienceEnhanceOptions_MergeSeriesPreferences_Series_Merge_Preference", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Series merge across libraries (same series in different libraries) only takes effect when scope is GlobalScope..
+        /// </summary>
+        public static string ExperienceEnhanceOptions_MergeSeriesPreferences_Series_merge_works_across_libraries_only_in_GlobalScope {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_MergeSeriesPreferences_Series_merge_works_across_librari" +
+                        "es_only_in_GlobalScope", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Split multi-version movies in all libraries (scan library for TV Series split).
         /// </summary>

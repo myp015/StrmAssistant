@@ -1,4 +1,5 @@
-﻿using Emby.Web.GenericEdit.Elements;
+﻿using Emby.Web.GenericEdit.Common;
+using Emby.Web.GenericEdit.Elements;
 using Emby.Web.GenericEdit.Elements.List;
 using Emby.Web.GenericEdit.PropertyDiff;
 using MediaBrowser.Common;
@@ -28,21 +29,38 @@ namespace StrmAssistant.Options.Store
 
         public IntroSkipOptions IntroSkipOptions => GetOptions();
 
+        // 过滤 scope 中不在可选列表内的值；可选列表为空(未初始化)时保留用户原值并告警，避免静默清空
+        private string FilterScope(string rawScope, List<EditorSelectOption> allowedList, string scopeName)
+        {
+            var inputIds = rawScope?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(id => id.Trim())
+                .Where(id => id.Length > 0)
+                .ToArray() ?? Array.Empty<string>();
+
+            if (allowedList.Count == 0 && inputIds.Length > 0)
+            {
+                _logger.Warn("{0}: 可选项列表为空（可能未调用 Initialize），已保留用户原值: {1}", scopeName, rawScope);
+                return rawScope;
+            }
+
+            var validValues = new HashSet<string>(allowedList.Select(o => o.Value));
+            var kept = inputIds.Where(validValues.Contains).ToArray();
+            var dropped = inputIds.Except(kept).ToArray();
+            if (dropped.Length > 0)
+                _logger.Warn("{0}: 过滤掉 {1} 个不在可选范围内的值: {2}", scopeName, dropped.Length, string.Join(", ", dropped));
+
+            return string.Join(",", kept);
+        }
+
         private void OnFileSaving(object sender, FileSavingEventArgs e)
         {
             if (e.Options is IntroSkipOptions options)
             {
-                options.LibraryScope = string.Join(",",
-                    options.LibraryScope
-                        ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                        .Where(v => options.LibraryList.Any(option => option.Value == v)) ??
-                    Enumerable.Empty<string>());
+                options.LibraryScope = FilterScope(options.LibraryScope, options.LibraryList,
+                    nameof(IntroSkipOptions.LibraryScope));
 
-                options.UserScope = string.Join(",",
-                    options.UserScope
-                        ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                        .Where(v => options.UserList.Any(option => option.Value == v)) ??
-                    Enumerable.Empty<string>());
+                options.UserScope = FilterScope(options.UserScope, options.UserList,
+                    nameof(IntroSkipOptions.UserScope));
 
                 var isModSupported = options.IsModSupported;
                 options.MarkerEnabledLibraryScope = isModSupported
@@ -50,11 +68,8 @@ namespace StrmAssistant.Options.Store
                         ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                         .Contains("-1") == true
                         ? "-1"
-                        : string.Join(",",
-                            options.MarkerEnabledLibraryScope
-                                ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                                .Where(v => options.MarkerEnabledLibraryList.Any(option =>
-                                    option.Value == v)) ?? Enumerable.Empty<string>())
+                        : FilterScope(options.MarkerEnabledLibraryScope, options.MarkerEnabledLibraryList,
+                            nameof(IntroSkipOptions.MarkerEnabledLibraryScope))
                     : string.Empty;
 
                 if (isModSupported)
@@ -205,6 +220,15 @@ namespace StrmAssistant.Options.Store
                 var introSkipPreferences = GetSelectedIntroSkipPreferenceDescription();
                 _logger.Info("IntroSkip - Preferences is set to {0}",
                     string.IsNullOrEmpty(introSkipPreferences) ? "EMPTY" : introSkipPreferences);
+
+                // UnlockIntroSkip 已开启但声纹提取范围为空的可见提示
+                if (options.UnlockIntroSkip && string.IsNullOrEmpty(options.MarkerEnabledLibraryScope))
+                {
+                    var hasMarkerEnabledLibs = options.MarkerEnabledLibraryList.Any(o => o.Value != "-1");
+                    _logger.Warn(hasMarkerEnabledLibs
+                        ? "UnlockIntroSkip 已开启但「声纹提取媒体库范围」为空：指纹提取将覆盖所有启用 marker 检测的剧集媒体库。若需限定范围，请在「声纹提取媒体库范围」中设置。"
+                        : "UnlockIntroSkip 已开启但没有任何启用 marker 检测的剧集媒体库，指纹提取将无可用媒体库。请先在媒体库选项中开启片头检测。");
+                }
             }
         }
     }
